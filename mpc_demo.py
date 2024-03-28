@@ -16,6 +16,9 @@ track_y = track_length/2/np.pi * np.sin(theta)
 # Initial state in the middle of the track
 x0 = np.array([track_length/2, track_length/(2*np.pi)])  # initial position at the center of the track
 
+# Initial state to the left of the track
+x0 = np.array([0, track_length/(2*np.pi)])  # initial position to the left of the track
+
 # State update matrix
 A = np.array([[1, dt],
               [0, 1]])
@@ -36,11 +39,17 @@ ax.set_xlabel('X position')
 ax.set_ylabel('Y position')
 ax.legend()
 
+# Initialize target position
+target_index = 0
+target_position = np.array([track_x[target_index], track_y[target_index]])
+
 def update(i):
-    global x0
-    # Define the target position dynamically as the car moves along the track
-    target_index = int((i + 1) % len(theta) ) # Circular movement along the track
-    target_position = np.array([track_x[target_index], track_y[target_index]])
+    global x0, target_index, target_position
+    # Check if the car has reached the current target position
+    if np.linalg.norm(x0 - target_position) < 1.0:  # Threshold to consider as reached
+        target_index = (target_index + 1) % len(theta)  # Move to the next target
+        target_position = np.array([track_x[target_index], track_y[target_index]])
+    
     target_velocity = 0.0   # target velocity
 
     # Objective and constraints
@@ -57,9 +66,12 @@ def update(i):
     # Update the car's position
     x0 = x.value[:, 1]
 
+    # Clear the previous car positions to avoid blue trail
+    # ax.collections.clear()
+
     # Update the plot
     line.set_data(x.value[0, :], x.value[1, :])
     return line,
 
-ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, 2*np.pi, 500), blit=True, repeat=True)  # Looping animation for continuous following
+ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, 2*np.pi, 500), blit=False, repeat=True)  # Looping animation for continuous following without blitting
 plt.show()
