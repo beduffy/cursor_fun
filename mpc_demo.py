@@ -8,11 +8,13 @@ dt = 0.1  # time step
 N = 20    # prediction horizon
 track_length = 100.0  # length of the track for demonstration
 
-# Track definition (simple straight line for this example)
-track = np.linspace(0, track_length, 500)
+# Track definition (circular track for this example)
+theta = np.linspace(0, 2*np.pi, 500)
+track_x = track_length/2/np.pi * np.cos(theta) + track_length/2
+track_y = track_length/2/np.pi * np.sin(theta)
 
-# Initial state
-x0 = np.array([0.0, 0.0])  # initial position and velocity
+# Initial state in the middle of the track
+x0 = np.array([track_length/2, track_length/(2*np.pi)])  # initial position at the center of the track
 
 # State update matrix
 A = np.array([[1, dt],
@@ -26,22 +28,23 @@ u = cp.Variable((1, N))
 
 # Animation setup
 fig, ax = plt.subplots(figsize=(10, 6))
-line, = ax.plot([], [], 'o-', lw=2)
-target_line, = ax.plot(track, np.zeros_like(track), 'k--', label='Track')
-ax.set_xlim(0, track_length)
-ax.set_ylim(-5, 5)
-ax.set_xlabel('Track position')
-ax.set_ylabel('Lateral position')
+line, = ax.plot([], [], 'o-', lw=2, color='blue', markersize=10)  # Increased marker size for visibility
+track_line, = ax.plot(track_x, track_y, 'k--', label='Track')
+ax.set_xlim(-10, track_length + 10)
+ax.set_ylim(-track_length/2 - 10, track_length/2 + 10)
+ax.set_xlabel('X position')
+ax.set_ylabel('Y position')
 ax.legend()
 
 def update(i):
     global x0
     # Define the target position dynamically as the car moves along the track
-    target_position = x0[0] + 10.0  # target position is always 10 units ahead of the current position
+    target_index = int((i + 1) % len(theta) ) # Circular movement along the track
+    target_position = np.array([track_x[target_index], track_y[target_index]])
     target_velocity = 0.0   # target velocity
 
     # Objective and constraints
-    objective = cp.Minimize(sum(cp.square(x[0, k+1] - target_position) + cp.square(x[1, k+1] - target_velocity) + cp.square(u[0, k]) for k in range(N)))
+    objective = cp.Minimize(sum(cp.square(x[0, k+1] - target_position[0]) + cp.square(x[1, k+1] - target_position[1]) for k in range(N)))
     constraints = [x[:, 0] == x0]
     for k in range(N):
         constraints += [x[:, k+1] == A @ x[:, k] + B @ u[:, k]]
@@ -55,8 +58,8 @@ def update(i):
     x0 = x.value[:, 1]
 
     # Update the plot
-    line.set_data(x.value[0, :], np.zeros_like(x.value[0, :]))
+    line.set_data(x.value[0, :], x.value[1, :])
     return line,
 
-ani = animation.FuncAnimation(fig, update, frames=range(200), blit=True)
+ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, 2*np.pi, 500), blit=True, repeat=True)  # Looping animation for continuous following
 plt.show()
