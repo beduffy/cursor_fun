@@ -14,6 +14,8 @@ class IntervalTrainingApp:
         pygame.display.set_caption('Interval Training')
         self.font = pygame.font.Font(None, 74)
         self.clock = pygame.time.Clock()
+        self.paused = False
+        self.pause_start_time = None
 
     def load_presets(self):
         if os.path.exists(PRESETS_FILE):
@@ -73,13 +75,34 @@ class IntervalTrainingApp:
                 self.countdown(3, "Get Ready", next_event, pre_countdown=True)
 
     def countdown(self, duration, current_event, next_event, pre_countdown=False):
+        start_time = time.time()
         while duration:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        self.paused = not self.paused
+                        if self.paused:
+                            self.pause_start_time = time.time()
+                        else:
+                            paused_duration = time.time() - self.pause_start_time
+                            start_time += paused_duration
 
-            mins, secs = divmod(duration, 60)
+            if self.paused:
+                self.screen.fill((0, 0, 0))
+                pause_text = self.font.render("Paused", True, (255, 255, 255))
+                self.screen.blit(pause_text, (350, 250))
+                pygame.display.flip()
+                continue
+
+            elapsed_time = time.time() - start_time
+            remaining_time = duration - int(elapsed_time)
+            if remaining_time <= 0:
+                break
+
+            mins, secs = divmod(remaining_time, 60)
             timeformat = '{:02d}:{:02d}'.format(mins, secs)
             self.screen.fill((0, 0, 0))
             time_text = self.font.render(timeformat, True, (255, 255, 255))
@@ -90,7 +113,6 @@ class IntervalTrainingApp:
             self.screen.blit(next_event_text, (50, 150))
             pygame.display.flip()
             self.clock.tick(1)
-            duration -= 1
 
         self.screen.fill((0, 0, 0))
         end_text = self.font.render("00:00", True, (255, 255, 255))
@@ -139,6 +161,7 @@ if __name__ == "__main__":
 
     # TODO countdown starts after the next event is started or add these extra 3 second countdowns to full time?
     # TODO easy way to do minutes?
+    # TODO dont say 300 seconds, always say minutes
     # TODO add functionality to pause and resume training. 
     # TODO add functionality to start training from specific place just in case i had to restart script
     # TODO add pygame screen with timer, current event, next event, etc.
