@@ -48,6 +48,7 @@ class IntervalTrainingApp:
             print(f"Total workout duration: {total_duration} seconds ({hours} hr {mins} mins and {secs} seconds)")
         else:
             print(f"Total workout duration: {total_duration} seconds ({mins} minutes and {secs} seconds)")
+
     def start_training(self, preset_name):
         if preset_name not in self.presets:
             print(f"Preset '{preset_name}' does not exist.")
@@ -57,11 +58,10 @@ class IntervalTrainingApp:
 
         events = self.presets[preset_name]
         for event in events:
-            print(f"Starting {event['name']} for {event['duration']} seconds.")
+            next_event = self.get_next_event(events, event)
+            print(f"Current: {event['name']} for {event['duration']} seconds. Next: {next_event}")
             self.speak(f"Starting {event['name']} for {event['duration']} seconds.")
             self.countdown(event['duration'])
-            next_event = self.get_next_event(events, event)
-            print(f"Next up: {next_event}")
             if next_event != "Training complete!":
                 self.speak(f"Next up: {next_event}")
                 self.countdown(3, pre_countdown=True)
