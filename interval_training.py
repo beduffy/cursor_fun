@@ -2,12 +2,18 @@ import time
 import json
 import os
 import subprocess
+import pygame
 
 PRESETS_FILE = 'presets.json'
 
 class IntervalTrainingApp:
     def __init__(self):
         self.load_presets()
+        pygame.init()
+        self.screen = pygame.display.set_mode((800, 600))
+        pygame.display.set_caption('Interval Training')
+        self.font = pygame.font.Font(None, 74)
+        self.clock = pygame.time.Clock()
 
     def load_presets(self):
         if os.path.exists(PRESETS_FILE):
@@ -61,25 +67,36 @@ class IntervalTrainingApp:
             next_event = self.get_next_event(events, event)
             print(f"Current: {event['name']} for {event['duration']} seconds. Next: {next_event}")
             self.speak(f"Starting {event['name']} for {event['duration']} seconds.")
-            self.countdown(event['duration'])
+            self.countdown(event['duration'], event['name'], next_event)
             if next_event != "Training complete!":
                 self.speak(f"Next up: {next_event}")
-                self.countdown(3, pre_countdown=True)
+                self.countdown(3, "Get Ready", next_event, pre_countdown=True)
 
-    def countdown(self, duration, pre_countdown=False):
-        if pre_countdown:
-            for i in range(duration, 0, -1):
-                print(f"{i}", end='\r')
-                self.speak(f"{i}")
-                time.sleep(1)
-        else:
-            while duration:
-                mins, secs = divmod(duration, 60)
-                timeformat = '{:02d}:{:02d}'.format(mins, secs)
-                print(timeformat, end='\r')
-                time.sleep(1)
-                duration -= 1
-            print("00:00")
+    def countdown(self, duration, current_event, next_event, pre_countdown=False):
+        while duration:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+
+            mins, secs = divmod(duration, 60)
+            timeformat = '{:02d}:{:02d}'.format(mins, secs)
+            self.screen.fill((0, 0, 0))
+            time_text = self.font.render(timeformat, True, (255, 255, 255))
+            current_event_text = self.font.render(f"Current: {current_event}", True, (255, 255, 255))
+            next_event_text = self.font.render(f"Next: {next_event}", True, (255, 255, 255))
+            self.screen.blit(time_text, (350, 250))
+            self.screen.blit(current_event_text, (50, 50))
+            self.screen.blit(next_event_text, (50, 150))
+            pygame.display.flip()
+            self.clock.tick(1)
+            duration -= 1
+
+        self.screen.fill((0, 0, 0))
+        end_text = self.font.render("00:00", True, (255, 255, 255))
+        self.screen.blit(end_text, (350, 250))
+        pygame.display.flip()
+        time.sleep(1)
 
     def get_next_event(self, events, current_event):
         current_index = events.index(current_event)
@@ -126,5 +143,3 @@ if __name__ == "__main__":
     # TODO add functionality to start training from specific place just in case i had to restart script
     # TODO add pygame screen with timer, current event, next event, etc.
     # TODO add ability to add presets from pygame
-
-
