@@ -17,6 +17,7 @@ class IntervalTrainingApp:
         self.paused = False
         self.pause_start_time = None
 
+
     def load_presets(self):
         if os.path.exists(PRESETS_FILE):
             with open(PRESETS_FILE, 'r') as file:
@@ -24,13 +25,16 @@ class IntervalTrainingApp:
         else:
             self.presets = {}
 
+
     def save_presets(self):
         with open(PRESETS_FILE, 'w') as file:
             json.dump(self.presets, file, indent=4)
 
+
     def add_preset(self, name, events):
         self.presets[name] = events
         self.save_presets()
+
 
     def modify_preset(self, name, events):
         if name in self.presets:
@@ -38,6 +42,7 @@ class IntervalTrainingApp:
             self.save_presets()
         else:
             print(f"Preset '{name}' does not exist.")
+
 
     def calculate_total_duration(self, preset_name):
         if preset_name not in self.presets:
@@ -48,6 +53,7 @@ class IntervalTrainingApp:
         total_duration = sum(event['duration'] for event in events)
         return total_duration
 
+
     def print_total_duration(self, preset_name):
         total_duration = self.calculate_total_duration(preset_name)
         hours, remainder = divmod(total_duration, 3600)
@@ -56,6 +62,7 @@ class IntervalTrainingApp:
             print(f"Total workout duration: {total_duration} seconds ({hours} hr {mins} mins and {secs} seconds)")
         else:
             print(f"Total workout duration: {total_duration} seconds ({mins} minutes and {secs} seconds)")
+
 
     def start_training(self, preset_name):
         if preset_name not in self.presets:
@@ -73,6 +80,9 @@ class IntervalTrainingApp:
             if next_event != "Training complete!":
                 self.speak(f"Next up: {next_event}")
                 self.countdown(3, "Get Ready", next_event, pre_countdown=True)
+            else:
+                self.speak("Good job! Well done!")
+
 
     def countdown(self, duration, current_event, next_event, pre_countdown=False):
         start_time = time.time()
@@ -120,12 +130,14 @@ class IntervalTrainingApp:
         pygame.display.flip()
         time.sleep(1)
 
+
     def get_next_event(self, events, current_event):
         current_index = events.index(current_event)
         if current_index + 1 < len(events):
             return events[current_index + 1]['name']
         else:
             return "Training complete!"
+
 
     def speak(self, text):
         subprocess.run(['espeak', text])
@@ -166,3 +178,6 @@ if __name__ == "__main__":
     # TODO add functionality to start training from specific place just in case i had to restart script
     # TODO add pygame screen with timer, current event, next event, etc.
     # TODO add ability to add presets from pygame
+    # TODO one day could auto play music with toprocks, footwork and choreo etc
+
+    # TODO able to talk to timer to ask how long is left, maybe easy with some wake word non api library
