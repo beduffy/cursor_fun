@@ -14,17 +14,19 @@ def convert_webm_to_mp4(input_folder, output_folder):
             output_filename = os.path.splitext(filename)[0] + ".mp4"
             output_path = os.path.join(output_folder, output_filename)
             
-            command = [
-                "ffmpeg",
-                "-i", input_path,
-                "-y",  # Overwrite
-                "-b:v", "1M",  # Set video bitrate to 1 Megabit per second
-                "-b:a", "128k",  # Set audio bitrate to 128 Kilobits per second
-                output_path
-            ]
-            
-            subprocess.run(command, check=True)
-            print(f"Converted {input_path} to {output_path}")
+            if not os.path.exists(output_path):
+                command = [
+                    "ffmpeg",
+                    "-i", input_path,
+                    "-b:v", "1M",  # Set video bitrate to 1 Megabit per second
+                    "-b:a", "128k",  # Set audio bitrate to 128 Kilobits per second
+                    output_path
+                ]
+                
+                subprocess.run(command, check=True)
+                print(f"Converted {input_path} to {output_path}")
+            else:
+                print(f"File {output_path} already exists. Skipping conversion.")
 
 if __name__ == "__main__":
     import argparse
