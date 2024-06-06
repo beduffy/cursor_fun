@@ -1,6 +1,7 @@
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 def read_gsheet_to_df(sheet_url, sheet_name):
     # Define the scope
@@ -29,6 +30,9 @@ def read_gsheet_to_df(sheet_url, sheet_name):
     # Convert the data to a DataFrame
     df = pd.DataFrame(rows, columns=headers)
 
+    # Convert numeric strings to floats
+    df = df.applymap(lambda x: float(x) if x.replace('.', '', 1).isdigit() else x)
+
     return df
 
 
@@ -42,11 +46,14 @@ def calculate_weekly_scores(df, habit_columns):
     # Set the date column as the index
     df.set_index(date_column, inplace=True)
 
-    # Assume all other columns are habit columns
-    # habit_columns = df.columns
+    # Filter the DataFrame to only include dates up to the current week
+    # current_week = datetime.now().isocalendar()[1]
+    # df = df[df.index.isocalendar().week <= current_week]
+    current_date = datetime.now()
+    df = df[df.index <= current_date]
 
-    # Resample the DataFrame by week and sum the habit columns
-    weekly_scores = df[habit_columns].resample('W').sum()
+    # Resample the DataFrame by week (starting on Monday) and sum the habit columns
+    weekly_scores = df[habit_columns].resample('W-MON').sum()
 
     return weekly_scores
 
@@ -65,6 +72,14 @@ def extract_habit_names(habit_columns):
     """
     habit_names = [col.split(' Num times')[0].strip() for col in habit_columns]
     return habit_names
+
+
+def rename_habit_columns(df, habit_columns, habit_names):
+    """
+    Rename the habit columns in the DataFrame to the specific habit names.
+    """
+    rename_dict = dict(zip(habit_columns, habit_names))
+    df.rename(columns=rename_dict, inplace=True)
 
 
 def save_gsheet_to_file(df, file_path):
@@ -92,11 +107,6 @@ if __name__ == "__main__":
     # for saving and reading faster and testing faster
     # save_gsheet_to_file(df, 'life_track.csv')
 
-    
-    
-
-
-
     print(df.columns)
 
     habit_columns = get_habit_columns(df)
@@ -105,5 +115,9 @@ if __name__ == "__main__":
     habit_names = extract_habit_names(habit_columns)
     print('habit_names:', habit_names)
 
-    weekly_scores = calculate_weekly_scores(df, habit_columns)
+    rename_habit_columns(df, habit_columns, habit_names)
+    print('Renamed columns:', df.columns)
+
+    weekly_scores = calculate_weekly_scores(df, habit_names)
     print(weekly_scores)
+
