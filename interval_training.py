@@ -156,19 +156,30 @@ if __name__ == "__main__":
     #     {"name": "Walk",      "duration": 60},
     #     {"name": "Cool-down", "duration": 60}
     # ])
-    app.add_preset("Breaking 1hr 45min", [
-        {"name": "Countdown",   "duration": 10},
-        {"name": "Top rocks",       "duration": 5 * 60},
-        {"name": "Shoulder",      "duration": 10 * 60},
-        {"name": "Footwork",      "duration": 15 * 60},
-        {"name": "Powermoves",      "duration": 25 * 60},
-        {"name": "Freezes",      "duration": 15 * 60},
-        {"name": "Choreo",      "duration": 5 * 60},
-        {"name": "Combine/integrate/dance",      "duration": 5 * 60},
-        {"name": "Back",      "duration": 10 * 60},
-        {"name": "Stretch",      "duration": 15 * 60}
-    ])
-    
+    # app.add_preset("Breaking 1hr 45min", [
+    #     {"name": "Countdown",   "duration": 10},
+    #     {"name": "Top rocks",       "duration": 5 * 60},
+    #     {"name": "Shoulder",      "duration": 10 * 60},
+    #     {"name": "Footwork",      "duration": 15 * 60},
+    #     {"name": "Powermoves",      "duration": 25 * 60},
+    #     {"name": "Freezes",      "duration": 15 * 60},
+    #     {"name": "Choreo",      "duration": 5 * 60},
+    #     {"name": "Combine/integrate/dance",      "duration": 5 * 60},
+    #     {"name": "Back",      "duration": 10 * 60},
+    #     {"name": "Stretch",      "duration": 15 * 60}
+    # ])
+
+    # app.add_preset("Breaking 1hr 15min", [
+    #     {"name": "Countdown",   "duration": 10},
+    #     {"name": "Top rocks",       "duration": 5 * 60},
+    #     {"name": "Shoulder",      "duration": 7 * 60},
+    #     {"name": "Footwork",      "duration": 15 * 60},
+    #     {"name": "Powermoves",      "duration": 25 * 60},
+    #     {"name": "Freezes",      "duration": 10 * 60},
+    #     {"name": "Combine/integrate/dance",      "duration": 5 * 60},
+    #     {"name": "Stretch",      "duration": 8 * 60}
+    # ])
+    # app.start_training("Breaking 1hr 15min")
     app.start_training("Breaking 1hr 45min")
 
     # TODO countdown starts after the next event is started or add these extra 3 second countdowns to full time?
@@ -181,3 +192,8 @@ if __name__ == "__main__":
     # TODO one day could auto play music with toprocks, footwork and choreo etc
 
     # TODO able to talk to timer to ask how long is left, maybe easy with some wake word non api library
+
+    # TODO talk to machine and tell it to shout ideas or combos at me
+    # TODO tell me what to practice in footwork today etc
+    # TODO youtube video about all of this
+    # TODO human pose estimation and rebuild that startup that got 1B funding   
