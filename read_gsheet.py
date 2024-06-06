@@ -30,8 +30,13 @@ def read_gsheet_to_df(sheet_url, sheet_name):
     # Convert the data to a DataFrame
     df = pd.DataFrame(rows, columns=headers)
 
+    # Replace 'OK' with 0 in the DataFrame
+    df.replace('OK', 0, inplace=True)
+
     # Convert numeric strings to floats
     df = df.applymap(lambda x: float(x) if x.replace('.', '', 1).isdigit() else x)
+
+    df = df.applymap(lambda x: float(x.split()[0]) if isinstance(x, str) and x[0].isdigit() else x)
 
     return df
 
