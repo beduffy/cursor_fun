@@ -169,18 +169,39 @@ if __name__ == "__main__":
     #     {"name": "Stretch",      "duration": 15 * 60}
     # ])
 
-    # app.add_preset("Breaking 1hr 15min", [
-    #     {"name": "Countdown",   "duration": 10},
-    #     {"name": "Top rocks",       "duration": 5 * 60},
-    #     {"name": "Shoulder",      "duration": 7 * 60},
-    #     {"name": "Footwork",      "duration": 15 * 60},
-    #     {"name": "Powermoves",      "duration": 25 * 60},
-    #     {"name": "Freezes",      "duration": 10 * 60},
-    #     {"name": "Combine/integrate/dance",      "duration": 5 * 60},
-    #     {"name": "Stretch",      "duration": 8 * 60}
-    # ])
-    # app.start_training("Breaking 1hr 15min")
-    app.start_training("Breaking 1hr 45min")
+    app.add_preset("Breaking 1hr 15min", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Shoulder",      "duration": 7 * 60},
+        {"name": "Footwork",      "duration": 10 * 60},
+        {"name": "Powermoves",      "duration": 25 * 60},
+        {"name": "Freezes",      "duration": 10 * 60},
+        {"name": "Combine/integrate/dance",      "duration": 5 * 60},
+        {"name": "Back",      "duration": 5 * 60},
+        {"name": "Stretch",      "duration": 8 * 60}
+    ])
+
+    app.add_preset("Breaking 1hr 30min", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Shoulder",      "duration": 7 * 60},
+        {"name": "Footwork",      "duration": 5 * 60},
+        {"name": "Powermoves",      "duration": 25 * 60},
+        {"name": "Footwork 2",      "duration": 10 * 60},
+        {"name": "Freezes",      "duration": 15 * 60},
+
+
+
+        # TODO no back
+
+
+        {"name": "Combine/integrate/dance",      "duration": 5 * 60},
+        {"name": "Stretch",      "duration": 18 * 60}
+    ])
+
+    app.start_training("Breaking 1hr 15min")
+    # app.start_training("Breaking 1hr 30min")
+    # app.start_training("Breaking 1hr 45min")
 
     # TODO countdown starts after the next event is started or add these extra 3 second countdowns to full time?
     # TODO easy way to do minutes?
