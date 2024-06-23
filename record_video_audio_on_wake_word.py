@@ -14,39 +14,49 @@ class VideoAudioRecorder:
         self.audio_frames = []
         self.is_recording = False
         self.start_time = None
+        self.video_fps = 30.0
+        self.audio_rate = 44100
+
 
     def video_record(self):
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # or cv2.CAP_GSTREAMER
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(f'{self.filename}.avi', fourcc, 30.0, (640, 480))
+        out = cv2.VideoWriter(f'{self.filename}.avi', fourcc, self.video_fps, (640, 480))
+
+        frame_duration = 1.0 / self.video_fps
+        next_frame_time = self.start_time
 
         while self.is_recording:
-            ret, frame = cap.read()
-            if ret:
-                out.write(frame)
-                cv2.imshow('Recording...', frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-            if time.time() - self.start_time > self.duration:
+            current_time = time.time()
+            if current_time >= next_frame_time:
+                ret, frame = cap.read()
+                if ret:
+                    out.write(frame)
+                    cv2.imshow('Recording...', frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                next_frame_time += frame_duration
+            if current_time - self.start_time > self.duration:
                 break
 
         cap.release()
         out.release()
         cv2.destroyAllWindows()
 
+
     def audio_record(self):
         CHUNK = 1024
         FORMAT = pyaudio.paInt16
         CHANNELS = 2
-        RATE = 44100
 
         p = pyaudio.PyAudio()
         stream = p.open(format=FORMAT,
                         channels=CHANNELS,
-                        rate=RATE,
+                        rate=self.audio_rate,
                         input=True,
                         frames_per_buffer=CHUNK)
 
+        time.sleep(0.1)  # Add a small delay before starting audio recording
         while self.is_recording:
             data = stream.read(CHUNK)
             self.audio_frames.append(data)
@@ -60,9 +70,10 @@ class VideoAudioRecorder:
         wf = wave.open(f'{self.filename}.wav', 'wb')
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(p.get_sample_size(FORMAT))
-        wf.setframerate(RATE)
+        wf.setframerate(self.audio_rate)
         wf.writeframes(b''.join(self.audio_frames))
         wf.close()
+
 
     def start_recording(self):
         self.is_recording = True
@@ -76,13 +87,10 @@ class VideoAudioRecorder:
         video_thread.join()
         audio_thread.join()
 
-# ... rest of the code ...
-
 
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
 
-
-def combine_audio_video(video_path, audio_path, output_path):
+def combine_audio_video_moviepy(video_path, audio_path, output_path):
     # Load the video file
     video = VideoFileClip(video_path)
     
@@ -116,4 +124,4 @@ if __name__ == "__main__":
     recorder.start_recording()
 
     # Usage
-    combine_audio_video("output.avi", "output.wav", "output_video.mp4")
+    combine_audio_video_moviepy("output.avi", "output.wav", "output_video.mp4")
