@@ -1,75 +1,104 @@
 import cv2
 import pyaudio
 import wave
+import numpy as np
 import threading
+import time
 
-def record_audio(output_file, duration):
-    chunk = 1024  # Record in chunks of 1024 samples
-    sample_format = pyaudio.paInt16  # 16 bits per sample
-    channels = 2
-    fs = 44100  # Record at 44100 samples per second
+class VideoAudioRecorder:
+    def __init__(self, filename, duration):
+        self.filename = filename
+        self.duration = duration
+        self.frames = []
+        self.audio_frames = []
+        self.is_recording = False
 
-    p = pyaudio.PyAudio()  # Create an interface to PortAudio
+    def video_record(self):
+        cap = cv2.VideoCapture(0)
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(f'{self.filename}.avi', fourcc, 20.0, (640, 480))
 
-    stream = p.open(format=sample_format,
-                    channels=channels,
-                    rate=fs,
-                    frames_per_buffer=chunk,
-                    input=True)
+        start_time = time.time()
+        while self.is_recording:
+            ret, frame = cap.read()
+            if ret:
+                out.write(frame)
+                cv2.imshow('Recording...', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            if time.time() - start_time > self.duration:
+                break
 
-    frames = []  # Initialize array to store frames
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
 
-    for _ in range(0, int(fs / chunk * duration)):
-        data = stream.read(chunk)
-        frames.append(data)
+    def audio_record(self):
+        CHUNK = 1024
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 2
+        RATE = 44100
 
-    # Stop and close the stream
-    stream.stop_stream()
-    stream.close()
-    # Terminate the PortAudio interface
-    p.terminate()
+        p = pyaudio.PyAudio()
+        stream = p.open(format=FORMAT,
+                        channels=CHANNELS,
+                        rate=RATE,
+                        input=True,
+                        frames_per_buffer=CHUNK)
 
-    # Save the recorded data as a WAV file
-    wf = wave.open(output_file, 'wb')
-    wf.setnchannels(channels)
-    wf.setsampwidth(p.get_sample_size(sample_format))
-    wf.setframerate(fs)
-    wf.writeframes(b''.join(frames))
-    wf.close()
+        start_time = time.time()
+        while self.is_recording:
+            data = stream.read(CHUNK)
+            self.audio_frames.append(data)
+            if time.time() - start_time > self.duration:
+                break
 
-def record_video(output_file, duration, fps=20.0, resolution=(640, 480)):
-    cap = cv2.VideoCapture(0)
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(output_file, fourcc, fps, resolution)
-    start_time = cv2.getTickCount()
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        out.write(frame)
-        cv2.imshow('Recording', frame)
-        elapsed_time = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-        if elapsed_time > duration:
-            break
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        wf = wave.open(f'{self.filename}.wav', 'wb')
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(p.get_sample_size(FORMAT))
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(self.audio_frames))
+        wf.close()
 
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
+    def start_recording(self):
+        self.is_recording = True
+        video_thread = threading.Thread(target=self.video_record)
+        audio_thread = threading.Thread(target=self.audio_record)
+        
+        video_thread.start()
+        audio_thread.start()
+        
+        video_thread.join()
+        audio_thread.join()
+
+from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
+
+def combine_audio_video(video_path, audio_path, output_path):
+    # Load the video file
+    video = VideoFileClip(video_path)
+    
+    # Load the audio file
+    audio = AudioFileClip(audio_path)
+    
+    # Set the audio of the video clip
+    final_clip = video.set_audio(audio)
+    
+    # Write the result to a file
+    final_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+    
+    # Close the clips
+    video.close()
+    audio.close()
+    final_clip.close()
 
 if __name__ == "__main__":
-    video_file = 'output.avi'
-    audio_file = 'output.wav'
-    duration = 10  # Duration in seconds
+    recorder = VideoAudioRecorder("output", duration=10)  # Record for 10 seconds
+    recorder.start_recording()
 
-    # Record audio and video in parallel
-    audio_thread = threading.Thread(target=record_audio, args=(audio_file, duration))
-    video_thread = threading.Thread(target=record_video, args=(video_file, duration))
 
-    audio_thread.start()
-    video_thread.start()
-
-    audio_thread.join()
-    video_thread.join()
+    # Usage
+    combine_audio_video("output.avi", "output.wav", "output_video.mp4")
