@@ -5,6 +5,7 @@ import numpy as np
 import threading
 import time
 
+
 class VideoAudioRecorder:
     def __init__(self, filename, duration):
         self.filename = filename
@@ -12,13 +13,13 @@ class VideoAudioRecorder:
         self.frames = []
         self.audio_frames = []
         self.is_recording = False
+        self.start_time = None
 
     def video_record(self):
         cap = cv2.VideoCapture(0)
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(f'{self.filename}.avi', fourcc, 20.0, (640, 480))
+        out = cv2.VideoWriter(f'{self.filename}.avi', fourcc, 30.0, (640, 480))
 
-        start_time = time.time()
         while self.is_recording:
             ret, frame = cap.read()
             if ret:
@@ -26,7 +27,7 @@ class VideoAudioRecorder:
                 cv2.imshow('Recording...', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-            if time.time() - start_time > self.duration:
+            if time.time() - self.start_time > self.duration:
                 break
 
         cap.release()
@@ -46,11 +47,10 @@ class VideoAudioRecorder:
                         input=True,
                         frames_per_buffer=CHUNK)
 
-        start_time = time.time()
         while self.is_recording:
             data = stream.read(CHUNK)
             self.audio_frames.append(data)
-            if time.time() - start_time > self.duration:
+            if time.time() - self.start_time > self.duration:
                 break
 
         stream.stop_stream()
@@ -66,6 +66,7 @@ class VideoAudioRecorder:
 
     def start_recording(self):
         self.is_recording = True
+        self.start_time = time.time()
         video_thread = threading.Thread(target=self.video_record)
         audio_thread = threading.Thread(target=self.audio_record)
         
@@ -75,7 +76,11 @@ class VideoAudioRecorder:
         video_thread.join()
         audio_thread.join()
 
+# ... rest of the code ...
+
+
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
+
 
 def combine_audio_video(video_path, audio_path, output_path):
     # Load the video file
@@ -83,6 +88,16 @@ def combine_audio_video(video_path, audio_path, output_path):
     
     # Load the audio file
     audio = AudioFileClip(audio_path)
+    
+    # Get the shorter duration
+    min_duration = min(video.duration, audio.duration)
+    
+    # Trim both video and audio to the shorter duration
+    video = video.subclip(0, min_duration)
+    audio = audio.subclip(0, min_duration)
+    
+    # Ensure audio is at the same frame rate as the video
+    audio = audio.set_fps(video.fps)
     
     # Set the audio of the video clip
     final_clip = video.set_audio(audio)
@@ -95,10 +110,10 @@ def combine_audio_video(video_path, audio_path, output_path):
     audio.close()
     final_clip.close()
 
+
 if __name__ == "__main__":
     recorder = VideoAudioRecorder("output", duration=10)  # Record for 10 seconds
     recorder.start_recording()
-
 
     # Usage
     combine_audio_video("output.avi", "output.wav", "output_video.mp4")
