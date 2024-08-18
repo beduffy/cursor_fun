@@ -102,6 +102,7 @@ def save_gsheet_to_file(df, file_path):
 if __name__ == "__main__":
     sheet_url = "https://docs.google.com/spreadsheets/d/15wgN0vMONW4tixOiHvTZHg0mQGBW5BfdaBg0EqjEwtM/edit#gid=100944524"
     sheet_name = "Tracking 2024"
+    pd.set_option('display.max_columns', None)
     # df = read_gsheet_to_df(sheet_url, sheet_name)
     # print(df)
 
