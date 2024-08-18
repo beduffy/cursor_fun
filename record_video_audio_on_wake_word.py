@@ -120,8 +120,28 @@ def combine_audio_video_moviepy(video_path, audio_path, output_path):
 
 
 if __name__ == "__main__":
-    recorder = VideoAudioRecorder("output", duration=10)  # Record for 10 seconds
-    recorder.start_recording()
+    # recorder = VideoAudioRecorder("output", duration=10)  # Record for 10 seconds
+    # recorder.start_recording()
 
     # Usage
-    combine_audio_video_moviepy("output.avi", "output.wav", "output_video.mp4")
+    # combine_audio_video_moviepy("output.avi", "output.wav", "output_video.mp4")
+
+    import subprocess
+
+    def record_audio_video(output_file, duration):
+        command = [
+            'ffmpeg',
+            '-f', 'pulse', '-i', 'default',  # Audio input using PulseAudio
+            '-f', 'v4l2', '-framerate', '30', '-video_size', '640x480', '-i', '/dev/video0',  # Video input
+            '-t', str(duration),
+            '-y',  # Overwrite output file if it exists
+            output_file
+        ]
+        try:
+            subprocess.run(command, check=True, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as e:
+            print(f"Error running FFmpeg: {e}")
+            print(f"FFmpeg error output:\n{e.stderr.decode()}")
+
+
+    record_audio_video("output.mp4", 10)
