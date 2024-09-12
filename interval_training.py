@@ -194,9 +194,33 @@ if __name__ == "__main__":
         {"name": "Stretch",      "duration": 15 * 60}
     ])
 
-    app.start_training("Breaking 1hr 15min")
+    app.add_preset("Powermove focus with shoulder and stretch 1hr 30", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Shoulder",      "duration": 10 * 60},
+        {"name": "Footwork",      "duration": 5 * 60},
+        # {"name": "Powermoves",      "duration": 33 * 60},
+        {"name": "Powermoves",      "duration": 40 * 60},
+        {"name": "Combine/integrate/dance/random",      "duration": 5 * 60},
+        # {"name": "Back",      "duration": 7 * 60},
+        {"name": "Stretch",      "duration": 25 * 60}
+    ])
+
+    app.add_preset("Powermove focus with shoulder and stretch 1hr 45", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks and warmup",       "duration": 7 * 60},
+        {"name": "Shoulder",      "duration": 10 * 60},
+        {"name": "Footwork",      "duration": 8 * 60},
+        {"name": "Powermoves",      "duration": 40 * 60},
+        {"name": "Combine/integrate/dance/random",      "duration": 5 * 60},
+        {"name": "Stretch",      "duration": 25 * 60}
+    ])
+
+    # app.start_training("Breaking 1hr 15min")
     # app.start_training("Breaking 1hr 30min")
     # app.start_training("Breaking 1hr 45min")
+    # app.start_training("Powermove focus with shoulder and stretch 1hr 30")
+    app.start_training("Powermove focus with shoulder and stretch 1hr 45")
 
     # TODO countdown starts after the next event is started or add these extra 3 second countdowns to full time?
     # TODO easy way to do minutes?
