@@ -216,12 +216,75 @@ if __name__ == "__main__":
         {"name": "Stretch",      "duration": 25 * 60}
     ])
 
+    app.add_preset("Powermove focus stretch 1hr 15", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Footwork",      "duration": 5 * 60},
+        {"name": "Powermoves",      "duration": 40 * 60},
+        {"name": "Stretch",      "duration": 25 * 60}
+    ])
+
+    app.add_preset("Breaking 1hr 15min no back, 18 minutes stretch", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Shoulder",      "duration": 7 * 60},
+        {"name": "Footwork",      "duration": 10 * 60},
+        {"name": "Powermoves",      "duration": 25 * 60},
+        {"name": "Freezes",      "duration": 10 * 60},
+        {"name": "Stretch",      "duration": 18 * 60}
+    ])
+
+    app.add_preset("Breaking 1hr 30min no back with learn, 18 minutes stretch", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Top rocks",       "duration": 5 * 60},
+        {"name": "Shoulder",      "duration": 10 * 60},
+        {"name": "Learn (backrocks)",       "duration": 10 * 60},
+        {"name": "Footwork",      "duration": 9 * 60},
+        {"name": "Powermoves",      "duration": 28 * 60},
+        {"name": "Freezes",      "duration": 10 * 60},
+        {"name": "Stretch",      "duration": 18 * 60}
+    ])
+
+    app.add_preset("Mathew Smith pancake program sep 28", [
+        {"name": "Countdown",   "duration": 10},
+        {"name": "Rolling the feet",       "duration": 60},
+        {"name": "Single leg calf stretch foot out",       "duration": 60},
+        {"name": "Single leg calf stretch foot in",       "duration": 60},
+        {"name": "Single leg calf stretch foot forward",       "duration": 60},
+        {"name": "Tailors pose 8 reps",       "duration": 8 * 6},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Tailors pose 8 reps",       "duration": 8 * 6},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Tailors pose 8 reps",       "duration": 8 * 6},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Round back pancake morning 6 reps",       "duration": 6 * 7},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Round back pancake morning 6 reps",       "duration": 6 * 7},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Round back pancake morning 6 reps",       "duration": 6 * 7},
+        {"name": "Rest",       "duration": 60},
+        
+        {"name": "Pancake lifts",       "duration": 6 * 5},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Pancake lifts",       "duration": 6 * 5},
+        {"name": "Rest",       "duration": 60},
+        {"name": "Pancake lifts",       "duration": 6 * 5},
+        {"name": "Rest",       "duration": 60},
+    ])
+
     # app.start_training("Breaking 1hr 15min")
     # app.start_training("Breaking 1hr 30min")
     # app.start_training("Breaking 1hr 45min")
+    # app.start_training("Powermove focus stretch 1hr 15")
+    # app.start_training("Breaking 1hr 15min no back, 18 minutes stretch")
+    # app.start_training("Breaking 1hr 30min no back with learn, 18 minutes stretch")
     # app.start_training("Powermove focus with shoulder and stretch 1hr 30")
-    app.start_training("Powermove focus with shoulder and stretch 1hr 45")
+    # app.start_training("Powermove focus with shoulder and stretch 1hr 45")
+    
+    app.start_training("Mathew Smith pancake program sep 28")
 
+
+    # TODO for reps of stuff with tempo. how long is wait from voice to start if i want to be exact?
     # TODO countdown starts after the next event is started or add these extra 3 second countdowns to full time?
     # TODO easy way to do minutes?
     # TODO dont say 300 seconds, always say minutes
