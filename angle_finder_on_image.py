@@ -5,41 +5,46 @@ import numpy as np
 # Initialize global variables for storing the points
 point1 = None
 point2 = None
+point3 = None
 dragging_point = None
 
-# Function to calculate the angle between two points
-def calculate_angle(pt1, pt2):
-    delta_y = pt2[1] - pt1[1]
-    delta_x = pt2[0] - pt1[0]
-    angle_rad = np.arctan2(delta_y, delta_x)
-    angle_deg = np.degrees(angle_rad)
+# Function to calculate the angle between two lines
+def calculate_angle_between_lines(line1, line2):
+    # Calculate the angle between two lines
+    angle1 = np.arctan2(line1[1][1] - line1[0][1], line1[1][0] - line1[0][0])
+    angle2 = np.arctan2(line2[1][1] - line2[0][1], line2[1][0] - line2[0][0])
+    angle_deg = np.degrees((angle2 - angle1) % (2 * np.pi))
     return angle_deg
 
 # Function to draw points and the angle on the image
-def draw_points_and_angle(img, pt1, pt2):
+def draw_points_and_angle(img, pt1, pt2, pt3):
     img_copy = img.copy()
-    if pt1 is not None and pt2 is not None:
-        # Draw the points and line between them
+    if pt1 is not None and pt2 is not None and pt3 is not None:
+        # Draw the points and lines between them
         cv2.circle(img_copy, pt1, 5, (0, 255, 0), -1)
         cv2.circle(img_copy, pt2, 5, (0, 255, 0), -1)
+        cv2.circle(img_copy, pt3, 5, (0, 255, 0), -1)
         cv2.line(img_copy, pt1, pt2, (255, 0, 0), 2)
+        cv2.line(img_copy, pt2, pt3, (255, 0, 0), 2)
         
         # Calculate and display the angle
-        angle = calculate_angle(pt1, pt2)
-        midpoint = ((pt1[0] + pt2[0]) // 2, (pt1[1] + pt2[1]) // 2)
+        angle = calculate_angle_between_lines((pt1, pt2), (pt2, pt3))
+        midpoint = ((pt2[0] + pt3[0]) // 2, (pt2[1] + pt3[1]) // 2)
         cv2.putText(img_copy, f"{angle:.2f} deg", midpoint, cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (255, 0, 0), 2, cv2.LINE_AA)
     return img_copy
 
 # Mouse callback function for handling point selection and dragging
 def mouse_callback(event, x, y, flags, param):
-    global point1, point2, dragging_point
+    global point1, point2, point3, dragging_point
 
     if event == cv2.EVENT_LBUTTONDOWN:
         if point1 is None:
             point1 = (x, y)
         elif point2 is None:
             point2 = (x, y)
+        elif point3 is None:
+            point3 = (x, y)
         else:
             # Check if we clicked near one of the points to drag it
             if np.linalg.norm(np.array(point1) - np.array((x, y))) < 10:
@@ -47,20 +52,25 @@ def mouse_callback(event, x, y, flags, param):
                 print('Chose point 1')
             elif np.linalg.norm(np.array(point2) - np.array((x, y))) < 10:
                 dragging_point = 2
-                print('Chose point 1')
+                print('Chose point 2')
+            elif np.linalg.norm(np.array(point3) - np.array((x, y))) < 10:
+                dragging_point = 3
+                print('Chose point 3')
 
     elif event == cv2.EVENT_MOUSEMOVE and dragging_point is not None:
         if dragging_point == 1:
             point1 = (x, y)
         elif dragging_point == 2:
             point2 = (x, y)
+        elif dragging_point == 3:
+            point3 = (x, y)
 
     elif event == cv2.EVENT_LBUTTONUP:
         dragging_point = None
 
 # Main function to load image and set up interaction
 def main(image_path):
-    global point1, point2
+    global point1, point2, point3
 
     # Load the image
     img = cv2.imread(image_path)
@@ -77,7 +87,7 @@ def main(image_path):
 
     while True:
         # Draw points and angle on the image
-        img_with_points = draw_points_and_angle(img, point1, point2)
+        img_with_points = draw_points_and_angle(img, point1, point2, point3)
 
         # Show the image
         cv2.imshow("Image with Points", img_with_points)
