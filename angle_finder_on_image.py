@@ -13,7 +13,10 @@ def calculate_angle_between_lines(line1, line2):
     # Calculate the angle between two lines
     angle1 = np.arctan2(line1[1][1] - line1[0][1], line1[1][0] - line1[0][0])
     angle2 = np.arctan2(line2[1][1] - line2[0][1], line2[1][0] - line2[0][0])
-    angle_deg = np.degrees((angle2 - angle1) % (2 * np.pi))
+    angle_subtract = (angle2 - angle1) % (2 * np.pi)
+    angle_subtract_norm = angle_subtract % (2 * np.pi)
+    # angle_deg = np.degrees(angle_subtract_norm)
+    angle_deg = 180 - np.degrees(angle_subtract_norm)
     return angle_deg
 
 # Function to draw points and the angle on the image
@@ -103,4 +106,5 @@ def main(image_path):
 if __name__ == "__main__":
     # Example: Provide the path to your image
     image_path = '/home/ben/Pictures/Screenshot from 2024-10-04 17-48-48.png'
+    image_path = '/home/ben/Pictures/leahy_test_left.png'
     main(image_path)
