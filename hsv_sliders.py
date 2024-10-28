@@ -5,8 +5,12 @@ def nothing(x):
     pass
 
 # Load the image
-image = cv2.imread('/home/ben/Pictures/orange_tape.png')
-image = cv2.imread('/home/ben/Pictures/reg_green_blue_new_docking_station.png')
+# image = cv2.imread('/home/ben/Pictures/orange_tape.png')
+# image = cv2.imread('/home/ben/Pictures/reg_green_blue_new_docking_station.png')
+# image = cv2.imread('/home/ben/Pictures/green_light_docking_adapter.png')
+# image = cv2.imread('/home/ben/Pictures/green_target_background_distractors.png')
+# image = cv2.imread('/home/ben/Pictures/orange_tape_under_adapter.png')
+image = cv2.imread('/home/ben/Pictures/orange_tape_with_many_distractors.png')
 # Resize the image by 1/4
 image = cv2.resize(image, (image.shape[1] // 2, image.shape[0] // 2))
 
