@@ -33,8 +33,8 @@ class Simple2DReachEnv(gym.Env):
                 </body>
             </worldbody>
             <actuator>
-                <motor joint="x_joint" name="x_motor"/>
-                <motor joint="y_joint" name="y_motor"/> 
+                <motor joint="x_joint" name="x_motor" gear="5"/>
+                <motor joint="y_joint" name="y_motor" gear="5"/> 
             </actuator>
         </mujoco>
         """
@@ -67,7 +67,7 @@ class Simple2DReachEnv(gym.Env):
         
     def step(self, action):
         # Apply action (motor controls)
-        self.data.ctrl[:] = action * 0.5  # Scale down actions
+        self.data.ctrl[:] = action * 5.0  # Increase action scaling for more movement
         
         # Simulate one step
         mj.mj_step(self.model, self.data)
@@ -83,6 +83,9 @@ class Simple2DReachEnv(gym.Env):
         # Check if done
         done = dist < 0.1  # Success if within 0.1 units of target
         truncated = False
+        
+        # Debugging print to check position
+        print('Position:', pos, 'Distance to target:', dist)
         
         return self._get_obs(), reward, done, truncated, {}
         
