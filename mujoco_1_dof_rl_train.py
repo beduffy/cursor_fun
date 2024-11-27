@@ -100,22 +100,45 @@ env = Simple2DReachEnv()
 env = DummyVecEnv([lambda: env])
 
 # Create and train PPO model
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=50_000)
+# model = PPO("MlpPolicy", env, verbose=1)
+# model.learn(total_timesteps=50_000)
 
 # Test the trained model
-obs = env.reset()  # Only unpack the single value returned
+obs = env.reset()[0]  # Correctly unpack the vectorized environment reset
 time.sleep(1)  # Give viewer time to initialize
 
+def render_environment(env):
+    if env.viewer is None:
+        env.viewer = mujoco.viewer.launch(env.model, env.data)
+    if env.viewer.is_running():
+        env.viewer.sync()
+        return True
+    return False
+
 while True:
-    action, _ = model.predict(obs, deterministic=True)
-    obs, reward, done, info = env.step(action)
+    # action, _ = model.predict(obs, deterministic=True)
+    action = env.action_space.sample()  # Generate random action
+    print('action:', action)  # Debugging print
+    
+    # Apply the action and step the environment
+    obs, rewards, dones, info = env.step(action)  # DummyVecEnv returns 4 values, not 5
+    obs = obs[0]  # Get the observation for the single environment
+    done = dones[0]  # Get the done flag for the single environment
+    
+    # Add a small delay to make the movement visible
+    time.sleep(0.01)
     
     # Render and check if the viewer is still running
-    if not env.envs[0].render():
+    if not render_environment(env.envs[0]):
+        print('viewer closed')  # Debugging print
         break
-        
-    if done.any():
-        obs, _ = env.reset()
+    
+    # Print the observation and reward for debugging
+    print('obs:', obs, 'reward:', rewards, 'done:', done)
+    
+    if done:  # No need to check truncated as it's included in 'info'
+        print('resetting')  # Debugging print
+        obs = env.reset()[0]  # Correctly unpack the reset
+        time.sleep(0.1)  # Give a slight pause after reset
 
 env.close()
