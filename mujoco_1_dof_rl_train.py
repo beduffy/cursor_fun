@@ -5,6 +5,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 import gymnasium as gym
 from gymnasium import spaces
+import time
 
 
 # Define a custom environment
@@ -12,17 +13,24 @@ class Simple2DReachEnv(gym.Env):
     def __init__(self):
         super().__init__()
         
-        # Create a simple 2D point mass model
+        # Create a simple 2D point mass model with checkerboard floor
         self.model_xml = """
         <mujoco>
+            <asset>
+                <texture type="2d" name="checkerboard" builtin="checker" rgb1=".2 .3 .4" rgb2=".3 .4 .5" width="300" height="300"/>
+                <material name="floor_mat" texture="checkerboard" texrepeat="5 5"/>
+            </asset>
             <option gravity="0 0 0"/>
             <worldbody>
+                <geom name="floor" type="plane" size="2 2 0.1" material="floor_mat"/>
                 <body name="point_mass" pos="0 0 0">
                     <joint name="x_joint" type="slide" axis="1 0 0" pos="0 0 0"/>
                     <joint name="y_joint" type="slide" axis="0 1 0" pos="0 0 0"/>
                     <geom name="point_mass" type="sphere" size="0.1" rgba="1 0 0 1"/>
                 </body>
-                <site name="target" pos="1 1 0" size="0.1" rgba="0 1 0 1"/>
+                <body name="target" pos="1 1 0">
+                    <geom name="target" type="sphere" size="0.1" rgba="0 1 0 0.5" contype="0" conaffinity="0"/>
+                </body>
             </worldbody>
             <actuator>
                 <motor joint="x_joint" name="x_motor"/>
@@ -76,11 +84,12 @@ class Simple2DReachEnv(gym.Env):
         
     def render(self):
         if self.viewer is None:
-            self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
-        
+            self.viewer = mujoco.viewer.launch(self.model, self.data)
         if self.viewer.is_running():
             self.viewer.sync()
-            
+            return True
+        return False
+        
     def close(self):
         if self.viewer is not None:
             self.viewer.close()
@@ -95,12 +104,18 @@ model = PPO("MlpPolicy", env, verbose=1)
 model.learn(total_timesteps=50_000)
 
 # Test the trained model
-obs = env.reset()
-for _ in range(1000):
+obs = env.reset()  # Only unpack the single value returned
+time.sleep(1)  # Give viewer time to initialize
+
+while True:
     action, _ = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)
-    env.render()
-    if done:
-        obs = env.reset()
+    
+    # Render and check if the viewer is still running
+    if not env.envs[0].render():
+        break
+        
+    if done.any():
+        obs, _ = env.reset()
 
 env.close()
