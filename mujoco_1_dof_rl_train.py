@@ -1,6 +1,6 @@
+import mujoco as mj
 import numpy as np
-import mujoco
-import mujoco.viewer
+from mujoco.glfw import glfw
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 import gymnasium as gym
@@ -40,15 +40,19 @@ class Simple2DReachEnv(gym.Env):
         """
         
         # Load model and create data
-        self.model = mujoco.MjModel.from_xml_string(self.model_xml)
-        self.data = mujoco.MjData(self.model)
+        self.model = mj.MjModel.from_xml_string(self.model_xml)
+        self.data = mj.MjData(self.model)
         
         # Define action and observation spaces
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,))
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(4,))
         
         # Create viewer
-        self.viewer = None
+        self.window = None
+        self.context = None
+        self.scene = None
+        self.cam = mj.MjvCamera()
+        self.opt = mj.MjvOption()
         
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -66,7 +70,7 @@ class Simple2DReachEnv(gym.Env):
         self.data.ctrl[:] = action * 0.5  # Scale down actions
         
         # Simulate one step
-        mujoco.mj_step(self.model, self.data)
+        mj.mj_step(self.model, self.data)
         
         # Get current position
         pos = self.data.qpos
@@ -83,65 +87,59 @@ class Simple2DReachEnv(gym.Env):
         return self._get_obs(), reward, done, truncated, {}
         
     def render(self):
-        if self.viewer is None:
-            self.viewer = mujoco.viewer.launch(self.model, self.data)
-        if self.viewer.is_running():
-            self.viewer.sync()
-            return True
-        return False
+        if self.window is None:
+            if not glfw.init():
+                raise Exception("GLFW could not be initialized!")
+            self.window = glfw.create_window(640, 480, "MuJoCo Simulation", None, None)
+            glfw.make_context_current(self.window)
+            self.context = mj.MjrContext(self.model, mj.mjtFontScale.mjFONTSCALE_150)
+            self.scene = mj.MjvScene(self.model, maxgeom=1000)
+        
+        if glfw.window_should_close(self.window):
+            return False
+        
+        # get framebuffer viewport
+        viewport_width, viewport_height = glfw.get_framebuffer_size(self.window)
+        viewport = mj.MjrRect(0, 0, viewport_width, viewport_height)
+
+        # Update scene and render
+        mj.mjv_updateScene(self.model, self.data, self.opt, None, self.cam, mj.mjtCatBit.mjCAT_ALL.value, self.scene)
+        mj.mjr_render(viewport, self.scene, self.context)
+
+        # swap OpenGL buffers (blocking call due to v-sync)
+        glfw.swap_buffers(self.window)
+
+        # process pending GUI events, call GLFW callbacks
+        glfw.poll_events()
+        
+        return True
         
     def close(self):
-        if self.viewer is not None:
-            self.viewer.close()
+        if self.window is not None:
+            glfw.terminate()
+            
+def main():
+    env = Simple2DReachEnv()
+    obs = env.reset()[0]
+    print('Initial observation:', obs)
+    
+    try:
+        while True:
+            action = env.action_space.sample()
+            print('action:', action)
+            obs, reward, done, truncated, info = env.step(action)
+            print('obs:', obs, 'reward:', reward, 'done:', done)
+            
+            if not env.render():
+                print('viewer closed')
+                break
+            
+            if done:
+                print('resetting')
+                obs = env.reset()[0]
+                time.sleep(0.1)
+    finally:
+        env.close()
 
-# TODO could not make the below work
-# Create and wrap the environment
-env = Simple2DReachEnv()
-env = DummyVecEnv([lambda: env])
-
-# Create and train PPO model
-# model = PPO("MlpPolicy", env, verbose=1)
-# model.learn(total_timesteps=50_000)
-
-# Initialize the environment
-obs = env.reset()[0]  # Correctly unpack the vectorized environment reset
-print('Initial observation:', obs)  # Debugging print
-time.sleep(1)  # Give viewer time to initialize
-
-try:
-    # Launch the viewer
-    viewer = mujoco.viewer.launch(env.envs[0].model, env.envs[0].data)
-    print("Viewer launched")  # Debugging print
-
-    while True:
-        # action, _ = model.predict(obs, deterministic=True)
-        action = env.action_space.sample()  # Generate random action
-        print('action:', action)  # Debugging print
-        
-        # Apply the action and step the environment
-        obs, rewards, dones, info = env.step(action)  # DummyVecEnv returns 4 values, not 5
-        obs = obs[0]  # Get the observation for the single environment
-        done = dones[0]  # Get the done flag for the single environment
-        
-        # Add a small delay to make the movement visible
-        time.sleep(0.01)
-        
-        # Render the environment
-        if viewer.is_running():
-            viewer.sync()
-        else:
-            print('viewer closed')  # Debugging print
-            break
-        
-        # Print the observation and reward for debugging
-        print('obs:', obs, 'reward:', rewards, 'done:', done)
-        
-        if done:  # No need to check truncated as it's included in 'info'
-            print('resetting')  # Debugging print
-            obs = env.reset()[0]  # Correctly unpack the reset
-            time.sleep(0.1)  # Give a slight pause after reset
-
-finally:
-    if viewer:
-        viewer.close()
-    env.close()
+if __name__ == "__main__":
+    main()
