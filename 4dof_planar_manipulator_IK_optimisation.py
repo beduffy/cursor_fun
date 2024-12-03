@@ -32,7 +32,21 @@ def bounds():
 
 # Inverse Kinematics Solver
 def inverse_kinematics(target, initial_guess):
-    result = minimize(objective_function, initial_guess, args=(target,), bounds=bounds())
+    result = minimize(
+        objective_function, 
+        initial_guess, 
+        args=(target,),
+        bounds=bounds(),
+        method='SLSQP',  # Adding specific optimization method
+        options={
+            'ftol': 1e-8,  # Tighter function tolerance
+            'maxiter': 1000  # More iterations allowed
+        }
+    )
+    
+    if not result.success:
+        print(f"Warning: Optimization failed to converge. Final error: {result.fun}")
+    
     return result.x
 
 # Visualization
@@ -48,11 +62,27 @@ def plot_manipulator(theta, target):
     plt.show()
 
 # Main Loop: Move to multiple targets
-targets = [(2.0, 2.0), (1.0, 3.0), (-1.0, 2.0), (0.0, -1.0)]
+targets = [(2.0, 2.0),
+           (1.0, 3.0), 
+           (-1.0, 2.0),
+           (0.0, -1.0),
+           (3.0, 1.0),
+           (-2.0, 3.0),
+           (2.5, -2.0),
+           (-3.0, -1.0),
+           (0.0, 3.5),
+           (1.5, -3.0),
+           (-2.5, 1.5),
+           (3.0, 2.5),
+           (0.0, 0.0),
+           (-1.5, -2.5),
+           (2.0, -1.0)]
 initial_guess = [0.0, 0.0, 0.0, 0.0]
 
 for target in targets:
     solution = inverse_kinematics(target, initial_guess)
+    final_error = objective_function(solution, target)
     print(f"Target: {target}, Solution Angles: {solution}")
+    print(f"Final position error: {final_error:.6f} units")
     plot_manipulator(solution, target)
-    initial_guess = solution  # Use the last solution as the next initial guess
+    initial_guess = solution
