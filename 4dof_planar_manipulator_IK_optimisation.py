@@ -49,7 +49,47 @@ def inverse_kinematics(target, initial_guess):
     
     return result.x
 
-# Visualization
+
+def calculate_jacobian(theta):
+    points = forward_kinematics(theta)
+    J = np.zeros((2, len(theta)))
+    end_effector = points[-1]
+    
+    for i in range(len(theta)):
+        # For each joint, calculate how it affects the end effector
+        sum_angle = sum(theta[:i+1])
+        J[0, i] = -sum(link_lengths[i:]) * np.sin(sum_angle)  # dx/dtheta
+        J[1, i] = sum(link_lengths[i:]) * np.cos(sum_angle)   # dy/dtheta
+    
+    return J
+
+
+def inverse_kinematics_jacobian(target, initial_guess, max_iterations=100, tolerance=1e-3):
+    theta = initial_guess.copy()
+    
+    for i in range(max_iterations):
+        points = forward_kinematics(theta)
+        end_effector = points[-1]
+        
+        # Calculate error
+        error = target - end_effector
+        if np.linalg.norm(error) < tolerance:
+            break
+            
+        # Calculate Jacobian and its pseudoinverse
+        J = calculate_jacobian(theta)
+        J_pinv = np.linalg.pinv(J)
+        
+        # Update joint angles
+        delta_theta = J_pinv @ error
+        theta += delta_theta
+        
+        # Optional: Normalize angles to [-pi, pi]
+        theta = np.mod(theta + np.pi, 2 * np.pi) - np.pi
+    
+    return theta
+
+
 def plot_manipulator(theta, target):
     points = forward_kinematics(theta)
     x, y = zip(*points)
@@ -79,8 +119,10 @@ targets = [(2.0, 2.0),
            (2.0, -1.0)]
 initial_guess = [0.0, 0.0, 0.0, 0.0]
 
+
 for target in targets:
-    solution = inverse_kinematics(target, initial_guess)
+    # solution = inverse_kinematics(target, initial_guess)
+    solution = inverse_kinematics_jacobian(target, initial_guess)
     final_error = objective_function(solution, target)
     print(f"Target: {target}, Solution Angles: {solution}")
     print(f"Final position error: {final_error:.6f} units")
