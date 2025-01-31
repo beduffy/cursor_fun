@@ -212,8 +212,9 @@ if __name__ == "__main__":
         {"name": "Shoulder",      "duration": 10 * 60},
         {"name": "Footwork",      "duration": 8 * 60},
         {"name": "Powermoves",      "duration": 40 * 60},
+        {"name": "Windmill conditioning",      "duration": 5 * 60},
         {"name": "Combine/integrate/dance/random",      "duration": 5 * 60},
-        {"name": "Stretch",      "duration": 25 * 60}
+        {"name": "Stretch",      "duration": 30 * 60}
     ])
 
     app.add_preset("Powermove focus stretch 1hr 15", [
@@ -279,9 +280,9 @@ if __name__ == "__main__":
     # app.start_training("Breaking 1hr 15min no back, 18 minutes stretch")
     # app.start_training("Breaking 1hr 30min no back with learn, 18 minutes stretch")
     # app.start_training("Powermove focus with shoulder and stretch 1hr 30")
-    # app.start_training("Powermove focus with shoulder and stretch 1hr 45")
+    app.start_training("Powermove focus with shoulder and stretch 1hr 45")
     
-    app.start_training("Mathew Smith pancake program sep 28")
+    # app.start_training("Mathew Smith pancake program sep 28")
 
 
     # TODO for reps of stuff with tempo. how long is wait from voice to start if i want to be exact?
