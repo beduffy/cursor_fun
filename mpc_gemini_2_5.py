@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 import csv
+import _tkinter
 
 # --- Constants and Model Parameters ---
 DT = 0.1  # [s] time tick
@@ -130,6 +131,8 @@ def mpc_control(current_state, ref_trajectory, prev_u):
 
 # --- Simulation ---
 def run_simulation():
+    plt.ion() # Enable interactive plotting
+
     # Generate reference trajectory
     num_ref_points = 200
     x_ref, y_ref, yaw_ref, v_ref = generate_circular_trajectory(CIRCULAR_TRAJECTORY_RADIUS, num_ref_points, TARGET_SPEED)
@@ -151,6 +154,25 @@ def run_simulation():
 
     # Previous control input (initialized to zero)
     prev_u = np.array([0.0, 0.0])
+
+    # --- Setup Live Plot ---
+    fig_live, ax_live = plt.subplots(figsize=(8, 8))
+    ax_live.set_title("Live MPC Simulation")
+    ax_live.plot(x_ref, y_ref, "r--", label="Reference Trajectory")
+    car_body, = ax_live.plot([], [], 'bo', markersize=10, label="Car") # Car body as a blue dot
+    # Arrow for heading (adjust length as needed)
+    car_heading, = ax_live.plot([], [], 'b-', linewidth=2) 
+    car_path, = ax_live.plot([], [], 'b:', label="Car Path") # Car's traced path
+    ax_live.set_xlabel("X [m]")
+    ax_live.set_ylabel("Y [m]")
+    ax_live.axis("equal")
+    ax_live.legend()
+    ax_live.grid(True)
+    # Set fixed limits for the live plot for better visualization if desired
+    # ax_live.set_xlim(min(x_ref) - 5, max(x_ref) + 5)
+    # ax_live.set_ylim(min(y_ref) - 5, max(y_ref) + 5)
+
+    traced_x, traced_y = [], []
 
     for i in range(time_steps):
         # Get the reference for the prediction horizon
@@ -176,6 +198,30 @@ def run_simulation():
 
         prev_u = optimal_u # Update previous control for next iteration
 
+        # Update live plot data
+        car_x, car_y, _, car_yaw = current_state
+        traced_x.append(car_x)
+        traced_y.append(car_y)
+
+        car_body.set_data(car_x, car_y)
+        
+        # Calculate heading arrow points
+        arrow_length = 1.5 # meters, visual aid
+        heading_x_end = car_x + arrow_length * np.cos(car_yaw)
+        heading_y_end = car_y + arrow_length * np.sin(car_yaw)
+        car_heading.set_data([car_x, heading_x_end], [car_y, heading_y_end])
+
+        car_path.set_data(traced_x, traced_y)
+
+        # Redraw live plot
+        try:
+            fig_live.canvas.draw()
+            fig_live.canvas.flush_events() # Ensure the event loop is processed
+            plt.pause(DT/2) # Pause for animation, can be adjusted
+        except _tkinter.TclError: # Catch error if window is closed
+            print("Live plot window closed. Stopping animation.")
+            break # Exit the simulation loop
+
         if i % 50 == 0: # Print progress
             print(f"Sim step: {i}/{time_steps}, "
                   f"X: {current_state[0]:.2f}, Y: {current_state[1]:.2f}, "
@@ -198,6 +244,8 @@ def run_simulation():
                              history_control[i, 0], history_control[i, 1]])
     print(f"Simulation data saved to {log_filename}")
 
+
+    plt.ioff() # Disable interactive mode for final summary plots
 
     # --- Plotting ---
     plt.figure(figsize=(15, 10))
