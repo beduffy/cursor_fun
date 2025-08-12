@@ -18,4 +18,14 @@ def test_render_html_handles_images_and_pre():
     assert "[IMG Logo]" in out
 
 
+def test_render_html_inline_styles():
+    html = """
+    <p>Make it <strong>bold</strong> and <em>emph</em> and <code>code</code>.</p>
+    """
+    out = render_html_to_terminal(html, base_url="https://ex.com", max_width=80)
+    assert "**bold**" in out
+    assert "_emph_" in out
+    assert "`code`" in out
+
+
 

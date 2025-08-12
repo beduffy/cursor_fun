@@ -75,6 +75,17 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
     """
     soup = BeautifulSoup(html or "", "html.parser")
 
+    # Inline styling markers
+    for tag in soup.find_all(["strong", "b"]):
+        text = tag.get_text(" ", strip=True)
+        tag.replace_with(f"**{text}**")
+    for tag in soup.find_all(["em", "i"]):
+        text = tag.get_text(" ", strip=True)
+        tag.replace_with(f"_{text}_")
+    for tag in soup.find_all("code"):
+        text = tag.get_text(" ", strip=True)
+        tag.replace_with(f"`{text}`")
+
     # Resolve and annotate links with footnote numbers
     footnotes: list[str] = []
     for idx, a in enumerate(soup.find_all("a", href=True), start=1):
