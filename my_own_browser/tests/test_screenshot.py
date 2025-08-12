@@ -12,3 +12,4 @@ def test_parse_args():
     assert args.full_page is True
 
 
+

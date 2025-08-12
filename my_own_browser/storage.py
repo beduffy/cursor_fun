@@ -30,3 +30,4 @@ def get_app_paths(app_name: str = "my_own_browser") -> AppPaths:
 __all__ = ["get_app_paths", "AppPaths"]
 
 
+

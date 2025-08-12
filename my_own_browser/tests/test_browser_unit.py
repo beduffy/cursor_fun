@@ -10,3 +10,4 @@ def test_normalize_url_adds_scheme():
     assert b._normalize_url("https://example.com") == "https://example.com"
 
 
+

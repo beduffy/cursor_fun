@@ -18,3 +18,4 @@ def test_render_html_handles_images_and_pre():
     assert "[IMG Logo]" in out
 
 
+

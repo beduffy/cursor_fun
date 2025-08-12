@@ -16,3 +16,4 @@ def test_get_app_paths_creates_dirs(tmp_path, monkeypatch):
     assert os.path.isdir(paths.downloads_dir)
 
 
+
