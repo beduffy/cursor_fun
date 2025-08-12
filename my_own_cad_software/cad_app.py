@@ -14,17 +14,17 @@ def main() -> int:  # pragma: no cover - GUI
   try:
     from PySide6.QtCore import Qt, QPointF
     from PySide6.QtGui import QPainter, QPen, QColor, QAction
-    from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QToolBar, QMessageBox, QStatusBar
+    from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QToolBar, QMessageBox, QStatusBar, QColorDialog
   except Exception:
     print("PySide6 not installed. Install to run GUI: pip install PySide6")
     return 1
 
   class Canvas(QWidget):  # type: ignore[misc]
     def __init__(self, doc: Document, stack: CommandStack):
-      super().__init__()
-      self.doc = doc
+    super().__init__()
+    self.doc = doc
       self.stack = stack
-      self.setWindowTitle("My Own CAD (2D)")
+    self.setWindowTitle("My Own CAD (2D)")
       self.resize(1000, 700)
       self._scale = 1.0
       self._origin = QPointF(0, 0)
@@ -45,10 +45,10 @@ def main() -> int:  # pragma: no cover - GUI
       self._selected_id: int | None = None
 
     def paintEvent(self, event):  # type: ignore[override]
-      painter = QPainter(self)
-      painter.setRenderHint(QPainter.Antialiasing)
-      pen = QPen()
-      pen.setWidth(2)
+    painter = QPainter(self)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen()
+    pen.setWidth(2)
       painter.setPen(pen)
       painter.translate(self._origin)
       painter.scale(self._scale, self._scale)
@@ -65,13 +65,13 @@ def main() -> int:  # pragma: no cover - GUI
           painter.drawLine(x, 0, x, h)
         for y in range(0, h, step):
           painter.drawLine(0, y, w, y)
-        painter.setPen(pen)
+    painter.setPen(pen)
 
       # Draw all visible entities for demo
       for ent in self.doc.iter_entities(visible_only=True):
         pen.setColor(QColor(ent.color))
         painter.setPen(pen)
-        if isinstance(ent, LineEntity):
+      if isinstance(ent, LineEntity):
           painter.drawLine(QPointF(ent.start.x, ent.start.y), QPointF(ent.end.x, ent.end.y))
         elif isinstance(ent, CircleEntity):
           painter.drawEllipse(QPointF(ent.center.x, ent.center.y), ent.radius, ent.radius)
@@ -148,16 +148,41 @@ def main() -> int:  # pragma: no cover - GUI
       if event.button() == Qt.LeftButton:
         world = self._to_world(event.position())
         self._handle_left_click(world)
+        return
+      if event.button() == Qt.RightButton and self._selected_id is not None:
+        # start dragging selected entity baseline
+        self._dragging = True
+        self._drag_start = self._to_world(event.position())
+        self._drag_last = self._drag_start
 
     def mouseReleaseEvent(self, event):  # type: ignore[override]
       if event.button() == Qt.MiddleButton:
         self._panning = False
+      if event.button() == Qt.RightButton and getattr(self, "_dragging", False):
+        self._dragging = False
+        # apply final move
+        dx = self._drag_last.x() - self._drag_start.x()
+        dy = self._drag_last.y() - self._drag_start.y()
+        if abs(dx) > 0.0 or abs(dy) > 0.0:
+          try:
+            self.stack.push_and_do(MoveEntityCommand(self.doc, self._selected_id, dx, dy))
+          except Exception:
+            pass
 
     def mouseMoveEvent(self, event):  # type: ignore[override]
       if self._panning:
         delta = event.position() - self._last_mouse
         self._origin += delta
         self._last_mouse = event.position()
+        self.update()
+        return
+      if getattr(self, "_dragging", False) and self._selected_id is not None:
+        self._drag_last = self._to_world(event.position())
+        # preview move by temporary drawing offset? Simplest: just update status
+        if self.status_callback:
+          dx = self._drag_last.x() - self._drag_start.x()
+          dy = self._drag_last.y() - self._drag_start.y()
+          self.status_callback("move", self._drag_last, None)
         self.update()
         return
       self._mouse_pos = self._to_world(event.position())
@@ -290,6 +315,11 @@ def main() -> int:  # pragma: no cover - GUI
       self.status = QStatusBar()
       self.setStatusBar(self.status)
 
+      # Color/width actions
+      add_action("Color", None, self._pick_color)
+      add_action("Thicker", "+", self._thicker)
+      add_action("Thinner", "-", self._thinner)
+
       # demo content
       from .geometry import Point as GPoint
       self.doc.add_entity(LineEntity(id=self.doc.create_id(), start=GPoint(50, 50), end=GPoint(300, 50), color="#cc0000"))
@@ -324,6 +354,39 @@ def main() -> int:  # pragma: no cover - GUI
           self.canvas.update()
         except Exception:
           pass
+
+    def _pick_color(self):
+      ent_id = self.canvas._selected_id
+      if ent_id is None:
+        return
+      ent = self.doc.get_entity(ent_id)
+      if ent is None:
+        return
+      col = QColorDialog.getColor(QColor(ent.color), self, "Pick Color")
+      if not col.isValid():
+        return
+      ent.color = col.name()
+      self.canvas.update()
+
+    def _thicker(self):
+      ent_id = self.canvas._selected_id
+      if ent_id is None:
+        return
+      ent = self.doc.get_entity(ent_id)
+      if ent is None:
+        return
+      ent.line_width = min(20.0, ent.line_width + 1.0)
+      self.canvas.update()
+
+    def _thinner(self):
+      ent_id = self.canvas._selected_id
+      if ent_id is None:
+        return
+      ent = self.doc.get_entity(ent_id)
+      if ent is None:
+        return
+      ent.line_width = max(0.5, ent.line_width - 1.0)
+      self.canvas.update()
 
     def _open(self):
       path, _ = QFileDialog.getOpenFileName(self, "Open", "", "CAD JSON (*.json)")

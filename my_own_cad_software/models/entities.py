@@ -11,6 +11,7 @@ class BaseEntity:
   id: int
   layer: str = "0"
   color: str = "#000000"
+  line_width: float = 2.0
 
   def bbox(self) -> Tuple[Point, Point]:  # pragma: no cover - abstract
     raise NotImplementedError
@@ -22,7 +23,7 @@ class BaseEntity:
     raise NotImplementedError
 
   def to_dict(self) -> Dict[str, Any]:  # pragma: no cover - default override in subclasses
-    return {"type": self.__class__.__name__, "id": self.id, "layer": self.layer, "color": self.color}
+    return {"type": self.__class__.__name__, "id": self.id, "layer": self.layer, "color": self.color, "line_width": self.line_width}
 
 
 @dataclass
@@ -150,6 +151,7 @@ def entity_from_dict(data: Dict[str, Any]) -> BaseEntity:
       id=int(data["id"]),
       layer=data.get("layer", "0"),
       color=data.get("color", "#000000"),
+      line_width=float(data.get("line_width", 2.0)),
       start=Point(float(data["start"]["x"]), float(data["start"]["y"])),
       end=Point(float(data["end"]["x"]), float(data["end"]["y"]))
     )
@@ -158,6 +160,7 @@ def entity_from_dict(data: Dict[str, Any]) -> BaseEntity:
       id=int(data["id"]),
       layer=data.get("layer", "0"),
       color=data.get("color", "#000000"),
+      line_width=float(data.get("line_width", 2.0)),
       center=Point(float(data["center"]["x"]), float(data["center"]["y"])),
       radius=float(data["radius"]) 
     )
@@ -166,6 +169,7 @@ def entity_from_dict(data: Dict[str, Any]) -> BaseEntity:
       id=int(data["id"]),
       layer=data.get("layer", "0"),
       color=data.get("color", "#000000"),
+      line_width=float(data.get("line_width", 2.0)),
       min_pt=Point(float(data["min_pt"]["x"]), float(data["min_pt"]["y"])),
       max_pt=Point(float(data["max_pt"]["x"]), float(data["max_pt"]["y"]))
     )
@@ -175,6 +179,7 @@ def entity_from_dict(data: Dict[str, Any]) -> BaseEntity:
       id=int(data["id"]),
       layer=data.get("layer", "0"),
       color=data.get("color", "#000000"),
+      line_width=float(data.get("line_width", 2.0)),
       points=pts,
     )
   raise ValueError(f"Unknown entity type: {etype}")
