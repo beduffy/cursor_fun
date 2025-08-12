@@ -88,6 +88,15 @@ Advanced additions:
   - `kmp_search.c`: Knuth–Morris–Pratt substring search.
   - `arena_scratch.c`: arena allocator with scratch scopes.
   - `small_regex_engine.c`: minimal regex engine (^ $ . * and literals).
+  - `base64_decode.c`: base64 decoder companion to encoder.
+  - `bloom_filter.c`: probabilistic membership with bitset + hashes.
+  - `lz77_tiny.c`: tiny illustrative LZ77-style compressor/decompressor.
+  - `astar_grid.c`: A* pathfinding on a 2D grid.
+  - `job_queue.c`: simple job queue with function pointer tasks.
+  - `json_query.c`: include-based JSON AST query by dotted path.
+  - `priority_scheduler.c`: scheduler using a priority queue.
+  - `ini_writer.c`: writing INI files.
+  - `lz4_lite.c`: educational LZ4-like encoder/decoder (not format-compatible).
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
