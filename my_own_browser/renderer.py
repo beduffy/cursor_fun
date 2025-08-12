@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html import unescape
+import re
 from typing import Iterable
 from urllib.parse import urljoin
 
@@ -25,6 +26,14 @@ def render_for_terminal(lines: Iterable[str], max_width: int = 100) -> str:
             wrapped_lines.append(text[:max_width])
             text = text[max_width:]
     return "\n".join(wrapped_lines)
+
+
+def _normalize_inline_text(text: str) -> str:
+    # Collapse whitespace and remove spaces before punctuation like ! ? , . ; : )
+    collapsed = re.sub(r"\s+", " ", text or "").strip()
+    collapsed = re.sub(r" \)", ")", collapsed)
+    collapsed = re.sub(r" ([,.;:!?])", r"\1", collapsed)
+    return collapsed
 
 
 def _wrap_paragraph(text: str, max_width: int) -> list[str]:
@@ -82,7 +91,8 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
             lines.append("")
 
     def emit_paragraph(text: str):
-        for ln in _wrap_paragraph(text, max_width):
+        normalized = _normalize_inline_text(text)
+        for ln in _wrap_paragraph(normalized, max_width):
             lines.append(ln)
 
     def emit_pre(text: str):
@@ -112,7 +122,7 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
         if name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             level = int(name[1])
             add_blank_line()
-            heading_text = node.get_text(" ", strip=True)
+            heading_text = _normalize_inline_text(node.get_text(" ", strip=True))
             lines.append(f"{'#' * level} {heading_text}")
             add_blank_line()
             return
@@ -123,7 +133,7 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
             start = 1
             for li in node.find_all("li", recursive=False):
                 bullet = f"{start}. " if is_ordered else "- "
-                text = li.get_text(" ", strip=True)
+                text = _normalize_inline_text(li.get_text(" ", strip=True))
                 for i, ln in enumerate(_wrap_paragraph(text, max_width - len(bullet))):
                     prefix = bullet if i == 0 else " " * len(bullet)
                     lines.append(prefix + ln)
