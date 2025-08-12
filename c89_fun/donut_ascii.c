@@ -1,6 +1,8 @@
 /* C89: classic ASCII spinning donut without libm (incremental trig) */
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
 
 /* Incremental rotation helpers: rotate (cosX, sinX) by fixed (cosD, sinD) */
 static void rotate(double *cosX, double *sinX, double cosD, double sinD)
@@ -113,6 +115,21 @@ int main(void)
     /* advance global rotations */
     rotate(&cosA, &sinA, cosdA, sindA);
     rotate(&cosB, &sinB, cosdB, sindB);
+
+    /* Slow down: simple portable sleep using clock() busy-wait */
+    {
+      double ms = 50.0; /* default ~20 FPS */
+      const char *env_ms = getenv("DONUT_MS");
+      if (env_ms != 0) {
+        int parsed = atoi(env_ms);
+        if (parsed > 0) { ms = (double)parsed; }
+      }
+      {
+        clock_t start = clock();
+        clock_t wait = (clock_t)(ms * (double)CLOCKS_PER_SEC / 1000.0);
+        while ((clock() - start) < wait) { /* busy-wait */ }
+      }
+    }
   }
 
   return 0;

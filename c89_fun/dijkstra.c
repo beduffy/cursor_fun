@@ -4,7 +4,7 @@
 #define N 5
 #define INF 1000000000
 
-static void dijkstra(const int graph[N][N], int src, int dist[N])
+static void dijkstra(int graph[N][N], int src, int dist[N])
 {
   int visited[N];
   int i, j;

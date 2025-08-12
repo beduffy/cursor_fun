@@ -72,6 +72,19 @@ Advanced additions:
   - `base64.c`: base64 encoder implementation.
   - `memmove_impl.c`: reimplementing `memmove` with overlap handling.
   - `MAKE_TUTORIAL.md`: a practical guide to GNU Make tailored to this repo.
+  - `ppm_io.c`: write/read a simple binary PPM (P6) image.
+  - `heap_priority_queue.c`: binary min-heap for ints.
+  - `dijkstra.c`: shortest paths on a small graph.
+  - `ini_parser.c`: tiny INI parser (sections and key=value).
+  - `argparse_demo.c`: simple `argv` parsing demo.
+  - `timer_cpu_clock.c`: measuring CPU time with `clock()`.
+  - `logger.c`: logger with levels and `LOG_LEVEL` env.
+  - `bitset.c`: compact bitset utilities.
+  - `rle.c`: simple run-length encoding of bytes.
+  - `glob_match.c`: wildcard `*` and `?` matching.
+  - `graph_bfs_dfs.c`: BFS and DFS traversals.
+  - `string_intern.c`: fixed-table string interning.
+  - `json_ast_parser.c`: tiny JSON-to-AST for a small subset.
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
