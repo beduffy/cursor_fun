@@ -94,7 +94,15 @@ class TimelineEditorWindow(QMainWindow):
         self.preview = PreviewWidget(self.project)
         right_v.addWidget(self.preview, 6)
         right_v.addWidget(controls, 1)
+        # Horizontal scroll control
+        from PySide6.QtWidgets import QSlider
+        self.hscroll = QSlider(Qt.Horizontal)
+        self.hscroll.setRange(0, 1000)
+        self.hscroll.setSingleStep(1)
+        self.hscroll.valueChanged.connect(self._on_hscroll_changed)
+
         right_v.addWidget(self.timeline, 3)
+        right_v.addWidget(self.hscroll)
         right.setLayout(right_v)
 
         splitter = QSplitter()
@@ -169,6 +177,13 @@ class TimelineEditorWindow(QMainWindow):
         redo_action.triggered.connect(self.redo)
         self.addAction(redo_action)
 
+        # Follow playhead (F)
+        self.follow_enabled = False
+        follow_action = QAction(self)
+        follow_action.setShortcut(Qt.Key_F)
+        follow_action.triggered.connect(self.toggle_follow)
+        self.addAction(follow_action)
+
     
     def add_media(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
@@ -199,6 +214,7 @@ class TimelineEditorWindow(QMainWindow):
         clip = self.project.add_clip(source_id, 0.0, src.duration, 0.0, 0)
         self.timeline.update()
         self.history.push(self.project)
+        self._sync_hscroll_to_view()
 
     
     def _media_start_drag(self, supportedActions):  # type: ignore[override]
@@ -225,6 +241,7 @@ class TimelineEditorWindow(QMainWindow):
             self.project.remove_clip(last_id)
         self.timeline.update()
         self.history.push(self.project)
+        self._sync_hscroll_to_view()
 
     
     def _on_playhead_changed(self, t: float) -> None:
@@ -239,6 +256,9 @@ class TimelineEditorWindow(QMainWindow):
         t = self.timeline.playhead_time
         self.preview.update_preview(t)
         self._update_time_label(t)
+        if self.follow_enabled:
+            self._auto_follow_view()
+            self._sync_hscroll_to_view()
 
     
     def toggle_play(self) -> None:
@@ -255,6 +275,52 @@ class TimelineEditorWindow(QMainWindow):
         m = int((t % 3600) // 60)
         s = t % 60
         self.time_label.setText(f"{h:02d}:{m:02d}:{s:06.3f}")
+
+    
+    def toggle_follow(self) -> None:
+        self.follow_enabled = not self.follow_enabled
+        status = "ON" if self.follow_enabled else "OFF"
+        self.statusBar().showMessage(f"Follow playhead: {status}", 2000)
+
+    
+    def _visible_window_seconds(self) -> float:
+        # Estimate visible window size in seconds based on timeline width
+        try:
+            width_px = max(1, self.timeline.width() - getattr(self.timeline, 'header_width', 60))
+            return width_px * self.timeline.seconds_per_pixel
+        except Exception:
+            return 10.0
+
+    
+    def _auto_follow_view(self) -> None:
+        win = self._visible_window_seconds()
+        center = max(0.0, self.timeline.playhead_time - 0.5 * win)
+        self.timeline.view_offset_seconds = max(0.0, center)
+        self.timeline.update()
+
+    
+    def _sync_hscroll_to_view(self) -> None:
+        total = max(0.0, self.project.get_timeline_duration())
+        win = max(0.001, self._visible_window_seconds())
+        max_offset = max(0.0, total - win)
+        if max_offset <= 0:
+            self.hscroll.setEnabled(False)
+            self.hscroll.setValue(0)
+            return
+        self.hscroll.setEnabled(True)
+        pos = int(1000.0 * min(1.0, max(0.0, self.timeline.view_offset_seconds / max_offset)))
+        self.hscroll.blockSignals(True)
+        self.hscroll.setValue(pos)
+        self.hscroll.blockSignals(False)
+
+    
+    def _on_hscroll_changed(self, value: int) -> None:
+        total = max(0.0, self.project.get_timeline_duration())
+        win = max(0.001, self._visible_window_seconds())
+        max_offset = max(0.0, total - win)
+        target = (value / 1000.0) * max_offset
+        self.timeline.view_offset_seconds = target
+        self.timeline.update()
 
     
     def toggle_snapping(self) -> None:
