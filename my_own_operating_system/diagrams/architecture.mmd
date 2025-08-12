@@ -1,6 +1,6 @@
 flowchart TD
-  A[Power-on/BIOS] --> B[Boot sector (LBA0) boot.asm]
-  B -->|INT 13h CHS read; on error -> LBA AH=42h| C[Stage2 (LBA1) stage2.asm at 0x7E00]
-  C -->|Set GDT, CR0.PE=1, far jump| D[Protected mode 32-bit]
-  D -->|Jump 0x00008000| E[Stage3 (LBA2) stage3.asm]
-  E -->|Write to VGA text 0xB8000| F[Visible text]
+  A["Power-on/BIOS"] --> B["Boot sector (LBA0) boot.asm"]
+  B -->|"INT 13h CHS read; on error -> LBA AH=42h"| C["Stage2 (LBA1) stage2.asm at 0x7E00"]
+  C -->|"Set GDT, CR0.PE=1, far jump"| D["Protected mode 32-bit"]
+  D -->|"Jump 0x00008000"| E["Stage3 (LBA2) stage3.asm"]
+  E -->|"Write to VGA text 0xB8000"| F["Visible text"]
