@@ -6,6 +6,7 @@ ORG 0x7E00
 
 start_stage2:
     ; Print status
+    cld                     ; forward string ops
     mov si, msg2
 .print_loop:
     lodsb

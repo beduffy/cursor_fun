@@ -18,6 +18,7 @@ start:
     mov [boot_drive], dl
 
     ; Print initial message
+    cld                     ; ensure forward for LODSB
     mov si, msg
 .print_loop:
     lodsb

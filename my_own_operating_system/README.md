@@ -9,13 +9,13 @@ This folder contains a tiny boot sector that prints a message using BIOS teletyp
 You can check tool availability with:
 
 ```bash
-make -C operating_system check
+make -C my_own_operating_system check
 ```
 
 ## Build
 
 ```bash
-make -C operating_system
+make -C my_own_operating_system
 ```
 
 This produces `boot.bin` (512 bytes) with the `0x55AA` signature.
@@ -23,7 +23,7 @@ This produces `boot.bin` (512 bytes) with the `0x55AA` signature.
 ## Run in QEMU
 
 ```bash
-make -C operating_system run
+make -C my_own_operating_system run
 ```
 
 QEMU will boot the boot sector and print the greeting.
@@ -35,5 +35,8 @@ QEMU will boot the boot sector and print the greeting.
 
 ## Disk Image
 
-- Build both stages and create a floppy image:``make -C operating_system image```
-- Run with QEMU:``make -C operating_system run```
+- Build both stages and create a floppy image:``make -C my_own_operating_system image```
+- Run with QEMU:``make -C my_own_operating_system run```
+
+Troubleshooting:
+- If boot prints " [E=xx]" after "Loading stage2", please share the hex code and we will switch the loader to LBA reads via INT 13h extensions.
