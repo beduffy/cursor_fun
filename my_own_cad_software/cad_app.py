@@ -20,7 +20,11 @@ def main() -> int:  # pragma: no cover - GUI
       super().__init__()
       self.doc = doc
       self.setWindowTitle("My Own CAD (2D)")
-      self.resize(800, 600)
+      self.resize(1000, 700)
+      self._scale = 1.0
+      self._origin = QPointF(0, 0)
+      self._panning = False
+      self._last_mouse = QPointF(0, 0)
 
     def paintEvent(self, event):  # type: ignore[override]
       painter = QPainter(self)
@@ -28,6 +32,8 @@ def main() -> int:  # pragma: no cover - GUI
       pen = QPen()
       pen.setWidth(2)
       painter.setPen(pen)
+      painter.translate(self._origin)
+      painter.scale(self._scale, self._scale)
 
       # Draw all visible entities for demo
       for ent in self.doc.iter_entities(visible_only=True):
@@ -43,6 +49,28 @@ def main() -> int:  # pragma: no cover - GUI
         elif isinstance(ent, PolylineEntity):
           for a, b in zip(ent.points[:-1], ent.points[1:]):
             painter.drawLine(QPointF(a.x, a.y), QPointF(b.x, b.y))
+
+    def wheelEvent(self, event):  # type: ignore[override]
+      delta = event.angleDelta().y()
+      factor = 1.0 + (0.1 if delta > 0 else -0.1)
+      self._scale = max(0.1, min(10.0, self._scale * factor))
+      self.update()
+
+    def mousePressEvent(self, event):  # type: ignore[override]
+      if event.button() == Qt.MiddleButton:
+        self._panning = True
+        self._last_mouse = event.position()
+
+    def mouseReleaseEvent(self, event):  # type: ignore[override]
+      if event.button() == Qt.MiddleButton:
+        self._panning = False
+
+    def mouseMoveEvent(self, event):  # type: ignore[override]
+      if self._panning:
+        delta = event.position() - self._last_mouse
+        self._origin += delta
+        self._last_mouse = event.position()
+        self.update()
 
   app = QApplication([])
   doc = Document()
