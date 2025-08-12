@@ -110,6 +110,10 @@ Advanced additions:
   - `union_find.c`: disjoint-set union with path compression and union by rank.
   - `fixed_point.c`: Q16.16 fixed-point arithmetic demo (mul/div).
   - `raster_ppm.c`: draw lines (Bresenham) and filled triangle to a PPM image.
+  - `png_writer.c`: minimal PNG writer (RGB8) with zlib stored block.
+  - `wav_synth.c`: write a simple 16-bit mono WAV with tones.
+  - `string_hashmap.c`: string→int hashmap (linear probing).
+  - `http_get_posix.c`: minimal HTTP GET via POSIX sockets (optional build).
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
