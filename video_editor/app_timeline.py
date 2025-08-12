@@ -198,12 +198,15 @@ class TimelineEditorWindow(QMainWindow):
 
     
     def delete_clip(self) -> None:
-        # Delete selected clip if any; otherwise delete last added
+        # Delete selected clips if any; otherwise delete last added
         if not self.project.clips:
             return
-        selected_id = getattr(self.timeline, 'selected_clip_id', None)
-        target_id = selected_id if selected_id in self.project.clips else max(self.project.clips.keys())
-        self.project.remove_clip(target_id)
+        selected_ids = list(getattr(self.timeline, 'selected_clip_ids', set()))
+        if selected_ids:
+            self.project.remove_clips(selected_ids)
+        else:
+            last_id = max(self.project.clips.keys())
+            self.project.remove_clip(last_id)
         self.timeline.update()
         self.history.push(self.project)
 

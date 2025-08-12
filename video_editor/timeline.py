@@ -91,12 +91,7 @@ class TimelineView(QWidget):
             y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
             clip_rect = QRectF(x, y, max(6, w), self.track_height)
             color = QColor(80, 120, 200)
-            # highlight selection
-            try:
-                selected_id = self.selected_clip_id  # type: ignore[attr-defined]
-            except Exception:
-                selected_id = None
-            if selected_id == clip.id:
+            if clip.id in self.selected_clip_ids:
                 color = QColor(120, 160, 240)
             painter.fillRect(clip_rect, color)
             painter.drawRect(clip_rect)
@@ -154,11 +149,22 @@ class TimelineView(QWidget):
         else:
             self.drag_state = ('move', res.clip_id, event.position(), None)
             self.setCursor(QCursor(Qt.ClosedHandCursor))
-        # selection
-        try:
-            self.selected_clip_id = res.clip_id  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        # selection (Ctrl toggles multi-select)
+        if res.clip_id is not None:
+            mods = Qt.NoModifier
+            try:
+                from PySide6.QtWidgets import QApplication
+                mods = QApplication.keyboardModifiers()
+            except Exception:
+                pass
+            if mods & Qt.ControlModifier:
+                if res.clip_id in self.selected_clip_ids:
+                    self.selected_clip_ids.remove(res.clip_id)
+                else:
+                    self.selected_clip_ids.add(res.clip_id)
+            else:
+                self.selected_clip_ids = {res.clip_id}
+            self.selected_clip_id = res.clip_id
         self.update()
 
     
