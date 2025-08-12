@@ -4,6 +4,7 @@
 BITS 32
 ORG 0x00008000
 
+global start_stage3
 start_stage3:
     ; Print string at top-left in blue background
     mov esi, msg

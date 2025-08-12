@@ -42,7 +42,11 @@ image: $(BOOT_BIN) $(STAGE2_BIN) $(STAGE3_BIN)
 | @echo "Created $(DISK_IMG)"
 
 run: image
-| $(QEMU) -machine pc -drive file=$(DISK_IMG),format=raw,if=floppy -serial mon:stdio -no-reboot -no-shutdown
+| $(QEMU) -machine pc -drive file=$(DISK_IMG),format=raw,if=floppy \
+|   -serial mon:stdio \
+|   -debugcon file:debug.log -global isa-debugcon.iobase=0xe9 \
+|   -D qemu.log -d guest_errors,int \
+|   -no-reboot -no-shutdown
 
 clean:
 | rm -f $(BOOT_BIN) $(STAGE2_BIN) $(STAGE3_BIN) $(DISK_IMG)

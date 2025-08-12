@@ -7,6 +7,9 @@ ORG 0x7E00
 start_stage2:
     ; Clear screen for clarity, then print status
     cld                     ; forward string ops
+    mov dx, 0x00E9
+    mov al, 'S'
+    out dx, al
     mov ax, 0x0600
     mov bh, 0x07
     mov cx, 0x0000
@@ -39,6 +42,9 @@ start_stage2:
     jc disk_error
 
     ; Indicate stage3 read OK
+    mov dx, 0x00E9
+    mov al, 'T'
+    out dx, al
     mov si, ok2_msg
 .ok2_loop:
     lodsb
@@ -59,8 +65,8 @@ start_stage2:
     or eax, 1
     mov cr0, eax
 
-    ; Far jump to 32-bit code selector 0x08 at offset 0x0010000
-    jmp 0x08:pm_entry
+    ; Far jump with 32-bit offset to flush pipeline and enter 32-bit code
+    jmp dword 0x08:pm_entry
 
 ; ------------------------
 ; 32-bit entry point
