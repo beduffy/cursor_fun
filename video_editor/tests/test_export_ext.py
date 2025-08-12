@@ -24,3 +24,4 @@ def test_export_appends_extension(tmp_path):
     assert (tmp_path / "out_noext.mp4").name.endswith(".mp4")
 
 
+

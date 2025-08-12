@@ -18,3 +18,4 @@ def test_split_clip(tmp_path):
     assert new_c.source_out == 1.0
     assert new_c.timeline_start == 0.4
 
+

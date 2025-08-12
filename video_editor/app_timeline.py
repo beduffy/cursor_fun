@@ -22,12 +22,12 @@ from PySide6.QtWidgets import (
 
 try:
     from .compositor import render_project
-    from .models import Project
+    from .models import Project, ProjectHistory
     from .timeline import TimelineView
     from .preview import PreviewWidget
 except ImportError:
     from compositor import render_project  # type: ignore
-    from models import Project  # type: ignore
+    from models import Project, ProjectHistory  # type: ignore
     from timeline import TimelineView  # type: ignore
     from preview import PreviewWidget  # type: ignore
 from PySide6 import QtGui
@@ -40,6 +40,8 @@ class TimelineEditorWindow(QMainWindow):
         self.resize(1400, 900)
 
         self.project = Project()
+        self.history = ProjectHistory()
+        self.history.push(self.project)
 
         # Media bin
         self.media_list = QListWidget()
@@ -141,6 +143,16 @@ class TimelineEditorWindow(QMainWindow):
         split_action.triggered.connect(self.split_selected_at_playhead)
         self.addAction(split_action)
 
+        # Undo/Redo
+        undo_action = QAction(self)
+        undo_action.setShortcut(QKeySequence.Undo)
+        undo_action.triggered.connect(self.undo)
+        self.addAction(undo_action)
+        redo_action = QAction(self)
+        redo_action.setShortcut(QKeySequence.Redo)
+        redo_action.triggered.connect(self.redo)
+        self.addAction(redo_action)
+
     
     def add_media(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
@@ -170,6 +182,7 @@ class TimelineEditorWindow(QMainWindow):
         # Add a full-length clip at t=0 on track 0 for now (MVP). User can drag/trim.
         clip = self.project.add_clip(source_id, 0.0, src.duration, 0.0, 0)
         self.timeline.update()
+        self.history.push(self.project)
 
     
     def _media_start_drag(self, supportedActions):  # type: ignore[override]
@@ -192,6 +205,7 @@ class TimelineEditorWindow(QMainWindow):
         target_id = selected_id if selected_id in self.project.clips else max(self.project.clips.keys())
         self.project.remove_clip(target_id)
         self.timeline.update()
+        self.history.push(self.project)
 
     
     def _on_playhead_changed(self, t: float) -> None:
@@ -242,6 +256,17 @@ class TimelineEditorWindow(QMainWindow):
             return
         self.project.split_clip(clip_id, self.timeline.playhead_time)
         self.timeline.update()
+        self.history.push(self.project)
+
+    
+    def undo(self) -> None:
+        if self.history.undo(self.project):
+            self.timeline.update()
+
+    
+    def redo(self) -> None:
+        if self.history.redo(self.project):
+            self.timeline.update()
 
     
     def export(self) -> None:

@@ -55,8 +55,9 @@ class TimelineView(QWidget):
         seconds_per_tick = max(0.5, round(self.seconds_per_pixel * 100))  # adaptive
         # draw tick marks and labels approx every 1s at current zoom
         tick_step_px = max(50, int(seconds_per_tick / self.seconds_per_pixel))
-        for x in range(0, rect.width(), tick_step_px):
-            t = x * self.seconds_per_pixel
+        x0 = self.header_width
+        for x in range(x0, rect.width(), tick_step_px):
+            t = (x - x0) * self.seconds_per_pixel + self.view_offset_seconds
             painter.drawLine(x, 0, x, self.ruler_height)
             label = f"{t:0.1f}s"
             painter.drawText(x + 2, int(self.ruler_height - 6), label)
@@ -65,17 +66,26 @@ class TimelineView(QWidget):
         for track in range(self.project.track_count):
             y = self.ruler_height + track * (self.track_height + self.row_gap)
             painter.fillRect(QRectF(0, y, rect.width(), self.track_height), QColor(40, 40, 40))
+            # draw lock icon as simple text
+            locked = False
+            try:
+                locked = self.project.is_track_locked(track)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            painter.setPen(QPen(QColor(200, 200, 200)))
+            painter.drawText(6, int(y + self.track_height / 2 + 5), "🔒" if locked else "🔓")
+            painter.setPen(QPen(QColor(70, 70, 70)))
 
         # Grid lines
         pen = QPen(QColor(70, 70, 70))
         painter.setPen(pen)
-        for x in range(0, rect.width(), 50):
+        for x in range(self.header_width, rect.width(), 50):
             painter.drawLine(x, self.ruler_height, x, rect.height())
 
         # Draw clips
         painter.setPen(QPen(QColor(20, 20, 20)))
         for clip in self.project.clips.values():
-            x = int((clip.timeline_start - self.view_offset_seconds) / self.seconds_per_pixel)
+            x = int((clip.timeline_start - self.view_offset_seconds) / self.seconds_per_pixel) + self.header_width
             w = int((clip.source_out - clip.source_in) / self.seconds_per_pixel)
             y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
             clip_rect = QRectF(x, y, max(6, w), self.track_height)
@@ -105,18 +115,34 @@ class TimelineView(QWidget):
             painter.setPen(QPen(QColor(20, 20, 20)))
 
         # Playhead
-        play_x = int((self.playhead_time - self.view_offset_seconds) / self.seconds_per_pixel)
+        play_x = int((self.playhead_time - self.view_offset_seconds) / self.seconds_per_pixel) + self.header_width
         painter.setPen(QPen(QColor(200, 60, 60), 2))
         painter.drawLine(play_x, 0, play_x, rect.height())
 
     
     def mousePressEvent(self, event):  # type: ignore[override]
+        if event.button() == Qt.RightButton:
+            # start panning
+            self._is_panning = True
+            self._pan_start_x = float(event.position().x())
+            self._pan_start_offset = self.view_offset_seconds
+            self.setCursor(QCursor(Qt.ClosedHandCursor))
+            return
         if event.button() != Qt.LeftButton:
             return
         # set playhead if clicked in empty area
         res = self._hit_test(event.position())
         if res.clip_id is None:
-            self.playhead_time = max(0.0, float(event.position().x()) * self.seconds_per_pixel + self.view_offset_seconds)
+            # toggle lock if clicking header area
+            if float(event.position().x()) < self.header_width:
+                track = int(max(0, (float(event.position().y()) - self.ruler_height) // float(self.track_height + self.row_gap)))
+                try:
+                    self.project.toggle_track_lock(track)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+                self.update()
+                return
+            self.playhead_time = max(0.0, (float(event.position().x()) - self.header_width) * self.seconds_per_pixel + self.view_offset_seconds)
             self.update()
             self.playheadChanged.emit(self.playhead_time)
             return
@@ -137,6 +163,11 @@ class TimelineView(QWidget):
     
     def mouseMoveEvent(self, event):  # type: ignore[override]
         # cursor feedback
+        if getattr(self, '_is_panning', False):
+            dx = float(event.position().x()) - getattr(self, '_pan_start_x', 0.0)
+            self.view_offset_seconds = max(0.0, getattr(self, '_pan_start_offset', 0.0) - dx * self.seconds_per_pixel)
+            self.update()
+            return
         res = self._hit_test(event.position())
         if res.clip_id is not None and res.edge in ('left', 'right'):
             self.setCursor(QCursor(Qt.SizeHorCursor))
@@ -162,7 +193,11 @@ class TimelineView(QWidget):
             cursor_y = float(event.position().y())
             track = int(max(0, (cursor_y - self.ruler_height) // float(self.track_height + self.row_gap)))
             track = min(self.project.track_count - 1, track)
-            clip.track_index = track
+            try:
+                if not self.project.is_track_locked(track):  # type: ignore[attr-defined]
+                    clip.track_index = track
+            except Exception:
+                clip.track_index = track
         elif mode == 'trim_left':
             new_left = clip.timeline_start + dx_seconds
             snapped_left = self._apply_snapping_time(new_left, exclude_clip_id=clip.id) if self.snapping_enabled else new_left
@@ -204,11 +239,15 @@ class TimelineView(QWidget):
 
     
     def wheelEvent(self, event):  # type: ignore[override]
-        # Zoom with Ctrl+Wheel, else scroll playhead
+        # Zoom with Ctrl+Wheel, pan with Shift+Wheel, else scroll playhead
         if event.modifiers() & Qt.ControlModifier:
             delta = event.angleDelta().y()
             factor = 0.9 if delta > 0 else 1.1
             self.seconds_per_pixel = max(0.001, min(0.5, self.seconds_per_pixel * factor))
+            self.update()
+        elif event.modifiers() & Qt.ShiftModifier:
+            delta = event.angleDelta().y()
+            self.view_offset_seconds = max(0.0, self.view_offset_seconds - delta * 0.002 * (1.0 / max(self.seconds_per_pixel, 1e-6)))
             self.update()
         else:
             delta = event.angleDelta().y()

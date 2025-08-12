@@ -88,3 +88,4 @@ class PreviewWidget(QWidget):
         self.label.setPixmap(pixmap)
 
 
+

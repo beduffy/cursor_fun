@@ -17,3 +17,4 @@ def test_delete_clip_prefers_selected(tmp_path):
     assert c2.id in p.clips
 
 
+

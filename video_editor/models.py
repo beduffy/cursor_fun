@@ -54,6 +54,7 @@ class Project:
     next_source_id: int = 1
     next_clip_id: int = 1
     track_count: int = 3
+    track_locks: List[bool] = field(default_factory=lambda: [False, False, False])
 
     
     def add_source(self, path: str) -> SourceMedia:
@@ -83,6 +84,12 @@ class Project:
             del self.clips[clip_id]
     
     
+    def remove_clips(self, clip_ids: List[int]) -> None:
+        for clip_id in clip_ids:
+            if clip_id in self.clips:
+                del self.clips[clip_id]
+
+
     def get_timeline_duration(self) -> float:
         if not self.clips:
             return 0.0
@@ -144,6 +151,7 @@ class Project:
             "next_source_id": self.next_source_id,
             "next_clip_id": self.next_clip_id,
             "track_count": self.track_count,
+            "track_locks": list(self.track_locks) if self.track_locks else [False] * self.track_count,
         }
 
     
@@ -153,6 +161,7 @@ class Project:
         proj.next_source_id = data.get("next_source_id", 1)
         proj.next_clip_id = data.get("next_clip_id", 1)
         proj.track_count = data.get("track_count", 3)
+        proj.track_locks = data.get("track_locks", [False] * proj.track_count)
         for s in data.get("sources", []):
             proj.sources[s["id"]] = SourceMedia(
                 id=s["id"],
@@ -185,5 +194,80 @@ class Project:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls.from_dict(data)
+
+    
+    def ensure_track_arrays(self) -> None:
+        if len(self.track_locks) < self.track_count:
+            self.track_locks.extend([False] * (self.track_count - len(self.track_locks)))
+
+    
+    def set_track_count(self, count: int) -> None:
+        self.track_count = max(1, count)
+        self.ensure_track_arrays()
+
+    
+    def is_track_locked(self, track_index: int) -> bool:
+        self.ensure_track_arrays()
+        if 0 <= track_index < len(self.track_locks):
+            return bool(self.track_locks[track_index])
+        return False
+
+    
+    def toggle_track_lock(self, track_index: int) -> None:
+        self.ensure_track_arrays()
+        if 0 <= track_index < len(self.track_locks):
+            self.track_locks[track_index] = not self.track_locks[track_index]
+
+
+@dataclass
+class ProjectHistory:
+    snapshots: List[dict] = field(default_factory=list)
+    index: int = -1
+
+    
+    def push(self, project: Project) -> None:
+        # Drop redo tail
+        if self.index < len(self.snapshots) - 1:
+            self.snapshots = self.snapshots[: self.index + 1]
+        self.snapshots.append(project.to_dict())
+        self.index = len(self.snapshots) - 1
+
+    
+    def can_undo(self) -> bool:
+        return self.index > 0
+
+    
+    def can_redo(self) -> bool:
+        return self.index < len(self.snapshots) - 1
+
+    
+    def undo(self, project: Project) -> bool:
+        if not self.can_undo():
+            return False
+        self.index -= 1
+        data = self.snapshots[self.index]
+        restored = Project.from_dict(data)
+        project.sources = restored.sources
+        project.clips = restored.clips
+        project.next_source_id = restored.next_source_id
+        project.next_clip_id = restored.next_clip_id
+        project.track_count = restored.track_count
+        project.track_locks = restored.track_locks
+        return True
+
+    
+    def redo(self, project: Project) -> bool:
+        if not self.can_redo():
+            return False
+        self.index += 1
+        data = self.snapshots[self.index]
+        restored = Project.from_dict(data)
+        project.sources = restored.sources
+        project.clips = restored.clips
+        project.next_source_id = restored.next_source_id
+        project.next_clip_id = restored.next_clip_id
+        project.track_count = restored.track_count
+        project.track_locks = restored.track_locks
+        return True
 
 
