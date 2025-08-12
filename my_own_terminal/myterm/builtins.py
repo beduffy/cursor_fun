@@ -70,6 +70,18 @@ def builtin_help(_: List[str]) -> CommandResult:
     return CommandResult(0, "Builtins: " + ", ".join(builtins.names()) + "\n")
 
 
+@builtins.register("which")
+def builtin_which(args: List[str]) -> CommandResult:
+    from .utils import which
+
+    outputs: List[str] = []
+    for name in args:
+        path = which(name)
+        if path:
+            outputs.append(path)
+    return CommandResult(0, ("\n".join(outputs) + ("\n" if outputs else "")))
+
+
 @builtins.register("alias")
 def builtin_alias(args: List[str]) -> CommandResult:
     # Handled by MyTerm; placeholder for completion

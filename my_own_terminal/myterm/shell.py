@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 from .builtins import CommandResult, builtins
-from .utils import get_git_branch, shorten_path, which
+from .utils import get_git_branch, shorten_path, which, has_shell_operators
 
 
 @dataclass
@@ -30,6 +30,13 @@ class MyTerm:
         self.config = config or ShellConfig()
         self.aliases: Dict[str, str] = dict(self.config.aliases)
         self._setup_history()
+        # Load aliases/env from rc file
+        try:
+            from .rc import load_rc
+
+            load_rc(self.aliases, self.config.env)
+        except Exception:
+            pass
 
     # ---------- Core loop ----------
     def run(self) -> int:
@@ -65,6 +72,7 @@ class MyTerm:
                     _readline.write_history_file(self.history_path)
                 except Exception:
                     pass
+                self._last_status = code
             except SystemExit as exit_exc:
                 return int(exit_exc.code) if hasattr(exit_exc, "code") else 0
             except Exception as exc:
@@ -83,7 +91,12 @@ class MyTerm:
         parts.append(f"{self.config.prompt_color}{short}{self.config.reset_color}")
         if branch:
             parts.append(f"\033[33m({branch})\033[0m")  # yellow branch
-        parts.append("$ ")
+        status = getattr(self, "_last_status", 0)
+        if status == 0:
+            status_str = "\033[32m✔\033[0m"
+        else:
+            status_str = f"\033[31m{status}\033[0m"
+        parts.append(f"{status_str} $ ")
         return " ".join(parts)
 
     # ---------- Execution ----------
@@ -100,6 +113,10 @@ class MyTerm:
                 value = value.strip().strip("'\"")
                 self.aliases[name.strip()] = value
                 return 0
+
+        # If the line contains shell operators, delegate to bash wholesale
+        if has_shell_operators(line):
+            return self._run_external(["/bin/bash", "-c", line], raw_line=line)
 
         tokens = shlex.split(line)
         if not tokens:
@@ -121,6 +138,31 @@ class MyTerm:
                 sys.stdout.write(result.output)
                 sys.stdout.flush()
             return result.return_code
+
+        # Simple variable export handling: export KEY=VALUE
+        if cmd == "export" and args and "=" in args[0]:
+            name, val = args[0].split("=", 1)
+            name = name.strip()
+            os.environ[name] = val
+            self.config.env[name] = val
+            return 0
+
+        # Unalias
+        if cmd == "unalias" and args:
+            for a in args:
+                self.aliases.pop(a, None)
+            return 0
+
+        # History print (best-effort)
+        if cmd == "history":
+            try:
+                import readline as _readline  # type: ignore
+
+                for i in range(1, _readline.get_current_history_length() + 1):
+                    print(f"{i}  {_readline.get_history_item(i)}")
+            except Exception:
+                pass
+            return 0
 
         # External command via subprocess
         return self._run_external(tokens, raw_line=line)

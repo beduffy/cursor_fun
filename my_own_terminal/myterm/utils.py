@@ -53,3 +53,12 @@ def which(executable: str, env: Dict[str, str] | None = None) -> str | None:
         if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
             return candidate
     return None
+
+
+SHELL_OPERATOR_CHARS = set("|&;><*?${}()\n")
+
+
+def has_shell_operators(line: str) -> bool:
+    # Heuristic: if special shell syntax appears, we should delegate to bash
+    # to preserve semantics (pipes, redirects, conditionals, globs, vars, subshells).
+    return any((ch in SHELL_OPERATOR_CHARS) for ch in line)
