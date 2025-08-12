@@ -85,6 +85,9 @@ Advanced additions:
   - `graph_bfs_dfs.c`: BFS and DFS traversals.
   - `string_intern.c`: fixed-table string interning.
   - `json_ast_parser.c`: tiny JSON-to-AST for a small subset.
+  - `kmp_search.c`: Knuth–Morris–Pratt substring search.
+  - `arena_scratch.c`: arena allocator with scratch scopes.
+  - `small_regex_engine.c`: minimal regex engine (^ $ . * and literals).
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
