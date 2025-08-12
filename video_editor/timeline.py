@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QMimeData, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QCursor
@@ -34,6 +34,7 @@ class TimelineView(QWidget):
         self.drag_state = None  # ('move'|'trim_left'|'trim_right', clip_id, start_pos, start_time)
         self.playhead_time = 0.0
         self.selected_clip_id = None
+        self.selected_clip_ids: Set[int] = set()
         self.snapping_enabled = True
         self.view_offset_seconds = 0.0
         self.selected_clip_id = None
