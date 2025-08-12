@@ -55,6 +55,8 @@ class Project:
     next_clip_id: int = 1
     track_count: int = 3
     track_locks: List[bool] = field(default_factory=lambda: [False, False, False])
+    track_mute: List[bool] = field(default_factory=lambda: [False, False, False])
+    track_visible: List[bool] = field(default_factory=lambda: [True, True, True])
 
     
     def add_source(self, path: str) -> SourceMedia:
@@ -152,6 +154,8 @@ class Project:
             "next_clip_id": self.next_clip_id,
             "track_count": self.track_count,
             "track_locks": list(self.track_locks) if self.track_locks else [False] * self.track_count,
+            "track_mute": list(self.track_mute) if self.track_mute else [False] * self.track_count,
+            "track_visible": list(self.track_visible) if self.track_visible else [True] * self.track_count,
         }
 
     
@@ -162,6 +166,8 @@ class Project:
         proj.next_clip_id = data.get("next_clip_id", 1)
         proj.track_count = data.get("track_count", 3)
         proj.track_locks = data.get("track_locks", [False] * proj.track_count)
+        proj.track_mute = data.get("track_mute", [False] * proj.track_count)
+        proj.track_visible = data.get("track_visible", [True] * proj.track_count)
         for s in data.get("sources", []):
             proj.sources[s["id"]] = SourceMedia(
                 id=s["id"],
@@ -199,6 +205,10 @@ class Project:
     def ensure_track_arrays(self) -> None:
         if len(self.track_locks) < self.track_count:
             self.track_locks.extend([False] * (self.track_count - len(self.track_locks)))
+        if len(self.track_mute) < self.track_count:
+            self.track_mute.extend([False] * (self.track_count - len(self.track_mute)))
+        if len(self.track_visible) < self.track_count:
+            self.track_visible.extend([True] * (self.track_count - len(self.track_visible)))
 
     
     def set_track_count(self, count: int) -> None:
@@ -217,6 +227,18 @@ class Project:
         self.ensure_track_arrays()
         if 0 <= track_index < len(self.track_locks):
             self.track_locks[track_index] = not self.track_locks[track_index]
+
+    
+    def toggle_track_mute(self, track_index: int) -> None:
+        self.ensure_track_arrays()
+        if 0 <= track_index < len(self.track_mute):
+            self.track_mute[track_index] = not self.track_mute[track_index]
+
+    
+    def toggle_track_visible(self, track_index: int) -> None:
+        self.ensure_track_arrays()
+        if 0 <= track_index < len(self.track_visible):
+            self.track_visible[track_index] = not self.track_visible[track_index]
 
 
 @dataclass

@@ -38,6 +38,10 @@ class TimelineView(QWidget):
         self.snapping_enabled = True
         self.view_offset_seconds = 0.0
         self.selected_clip_id = None
+        # Panning state
+        self._is_panning = False
+        self._pan_start_x = 0.0
+        self._pan_start_offset = 0.0
 
     
     def sizeHint(self):  # type: ignore[override]
@@ -69,12 +73,17 @@ class TimelineView(QWidget):
             painter.fillRect(QRectF(0, y, rect.width(), self.track_height), QColor(40, 40, 40))
             # draw lock icon as simple text
             locked = False
+            muted = False
+            visible = True
             try:
                 locked = self.project.is_track_locked(track)  # type: ignore[attr-defined]
+                muted = self.project.track_mute[track]  # type: ignore[attr-defined]
+                visible = self.project.track_visible[track]  # type: ignore[attr-defined]
             except Exception:
                 pass
             painter.setPen(QPen(QColor(200, 200, 200)))
-            painter.drawText(6, int(y + self.track_height / 2 + 5), "🔒" if locked else "🔓")
+            icon = ("🔒" if locked else "🔓") + (" 🔇" if muted else " 🔊") + (" 👁" if visible else " 🚫")
+            painter.drawText(6, int(y + self.track_height / 2 + 5), icon)
             painter.setPen(QPen(QColor(70, 70, 70)))
 
         # Grid lines
@@ -90,6 +99,7 @@ class TimelineView(QWidget):
             w = int((clip.source_out - clip.source_in) / self.seconds_per_pixel)
             y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
             clip_rect = QRectF(x, y, max(6, w), self.track_height)
+            # respect visibility flag: dim if hidden
             color = QColor(80, 120, 200)
             if clip.id in self.selected_clip_ids:
                 color = QColor(120, 160, 240)

@@ -143,6 +143,16 @@ class TimelineEditorWindow(QMainWindow):
         split_action.triggered.connect(self.split_selected_at_playhead)
         self.addAction(split_action)
 
+        # Toggle track mute (M) and visibility (V) on selected clip's track
+        mute_action = QAction(self)
+        mute_action.setShortcut(Qt.Key_M)
+        mute_action.triggered.connect(self.toggle_selected_track_mute)
+        self.addAction(mute_action)
+        vis_action = QAction(self)
+        vis_action.setShortcut(Qt.Key_V)
+        vis_action.triggered.connect(self.toggle_selected_track_visibility)
+        self.addAction(vis_action)
+
         # Undo/Redo
         undo_action = QAction(self)
         undo_action.setShortcut(QKeySequence.Undo)
@@ -260,6 +270,24 @@ class TimelineEditorWindow(QMainWindow):
         self.project.split_clip(clip_id, self.timeline.playhead_time)
         self.timeline.update()
         self.history.push(self.project)
+
+    
+    def toggle_selected_track_mute(self) -> None:
+        clip_id = getattr(self.timeline, 'selected_clip_id', None)
+        if clip_id is None or clip_id not in self.project.clips:
+            return
+        track = self.project.clips[clip_id].track_index
+        self.project.toggle_track_mute(track)
+        self.timeline.update()
+
+    
+    def toggle_selected_track_visibility(self) -> None:
+        clip_id = getattr(self.timeline, 'selected_clip_id', None)
+        if clip_id is None or clip_id not in self.project.clips:
+            return
+        track = self.project.clips[clip_id].track_index
+        self.project.toggle_track_visible(track)
+        self.timeline.update()
 
     
     def undo(self) -> None:
