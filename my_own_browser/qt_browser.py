@@ -17,6 +17,8 @@ import sys
 from typing import Optional
 
 from .storage import get_app_paths
+from .bookmarks import add_bookmark, load_bookmarks
+from .history import add_to_history
 
 
 def guess_url(text: str) -> str:
@@ -41,6 +43,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             QMainWindow,
             QPushButton,
             QTabWidget,
+            QListWidget,
+            QDialog,
+            QDialogButtonBox,
             QStatusBar,
             QToolBar,
             QVBoxLayout,
@@ -77,6 +82,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.back_button = QPushButton("←")
             self.forward_button = QPushButton("→")
             self.reload_button = QPushButton("⟳")
+            self.bookmark_button = QPushButton("★")
             self.url_input = QLineEdit()
             self.url_input.setPlaceholderText("Enter URL…")
 
@@ -88,6 +94,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             toolbar_layout.addWidget(self.back_button)
             toolbar_layout.addWidget(self.forward_button)
             toolbar_layout.addWidget(self.reload_button)
+            toolbar_layout.addWidget(self.bookmark_button)
             toolbar_layout.addWidget(self.url_input, stretch=1)
 
             # Persistence paths and profile
@@ -134,6 +141,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.forward_button.clicked.connect(lambda: self._current_web().forward())
             self.reload_button.clicked.connect(lambda: self._current_web().reload())
             self.url_input.returnPressed.connect(self._on_url_entered)
+            self.bookmark_button.clicked.connect(self._on_add_bookmark)
 
             # Connect for current tab
             self._connect_current_tab()
@@ -143,6 +151,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             QShortcut(QKeySequence("Ctrl+T"), self, activated=lambda: self._add_tab(self.homepage))
             QShortcut(QKeySequence("Ctrl+W"), self, activated=lambda: self._close_tab(self.tabs.currentIndex()))
             QShortcut(QKeySequence("Ctrl+R"), self, activated=lambda: self._current_web().reload())
+            QShortcut(QKeySequence("Ctrl+B"), self, activated=self._show_bookmarks)
+            QShortcut(QKeySequence("Ctrl+H"), self, activated=self._show_history)
+            QShortcut(QKeySequence("Ctrl+F"), self, activated=self._find_in_page)
 
         def _current_web(self) -> QWebEngineView:  # type: ignore[name-defined]
             return self.tabs.currentWidget()  # type: ignore[return-value]
@@ -180,6 +191,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             cur = self._current_web()
             if cur:
                 self.tabs.setTabText(self.tabs.currentIndex(), url.toString()[:30])
+                # Add to history
+                try:
+                    add_to_history(url.toString(), url.toString())
+                except Exception:
+                    pass
 
         def _on_progress(self, val: int) -> None:
             self.status.showMessage(f"Loading… {val}%")
@@ -200,6 +216,67 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         def _focus_url(self) -> None:
             self.url_input.setFocus()
+
+        def _on_add_bookmark(self) -> None:
+            cur = self._current_web()
+            if not cur:
+                return
+            url = cur.url().toString()
+            title = url
+            try:
+                add_bookmark(url, title)
+                self.status.showMessage("Bookmarked", 2000)
+            except Exception as exc:
+                self.status.showMessage(f"Bookmark failed: {exc}", 3000)
+
+        def _show_bookmarks(self) -> None:
+            items = load_bookmarks()
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Bookmarks")
+            v = QVBoxLayout(dlg)
+            listw = QListWidget(dlg)
+            for it in items:
+                listw.addItem(f"{it.title} — {it.url}")
+            v.addWidget(listw)
+            buttons = QDialogButtonBox(QDialogButtonBox.Close)
+            buttons.rejected.connect(dlg.reject)
+            v.addWidget(buttons)
+            listw.itemDoubleClicked.connect(lambda item: (self._navigate_to(item.text().split(" — ")[-1]), dlg.accept()))
+            dlg.exec()
+
+        def _navigate_to(self, url: str) -> None:
+            cur = self._current_web()
+            if cur:
+                from PySide6.QtCore import QUrl as _QUrl
+                cur.setUrl(_QUrl(url))
+
+        def _show_history(self) -> None:
+            from .history import load_history
+            items = load_history()
+            dlg = QDialog(self)
+            dlg.setWindowTitle("History")
+            v = QVBoxLayout(dlg)
+            listw = QListWidget(dlg)
+            for it in items[-500:]:
+                listw.addItem(f"{it.title} — {it.url}")
+            v.addWidget(listw)
+            buttons = QDialogButtonBox(QDialogButtonBox.Close)
+            buttons.rejected.connect(dlg.reject)
+            v.addWidget(buttons)
+            listw.itemDoubleClicked.connect(lambda item: (self._navigate_to(item.text().split(" — ")[-1]), dlg.accept()))
+            dlg.exec()
+
+        def _find_in_page(self) -> None:
+            cur = self._current_web()
+            if not cur:
+                return
+            from PySide6.QtWidgets import QInputDialog
+            text, ok = QInputDialog.getText(self, "Find", "Find text:")
+            if ok and text:
+                try:
+                    cur.findText(text)
+                except Exception:
+                    pass
 
     class BrowserTabView(QWebEngineView):  # type: ignore[misc]
         def __init__(self, window: BrowserWindow) -> None:
