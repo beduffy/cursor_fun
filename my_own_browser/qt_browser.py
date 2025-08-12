@@ -53,6 +53,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             QVBoxLayout,
             QDockWidget,
             QPlainTextEdit,
+            QCompleter,
             QWidget,
         )
         from PySide6.QtGui import QShortcut, QKeySequence
@@ -89,6 +90,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.forward_button = QPushButton("→")
             self.reload_button = QPushButton("⟳")
             self.home_button = QPushButton("🏠")
+            self.zoom_out_button = QPushButton("-")
+            self.zoom_in_button = QPushButton("+")
             self.bookmark_button = QPushButton("★")
             self.reader_button = QPushButton("Reader")
             self.url_input = QLineEdit()
@@ -105,12 +108,15 @@ def main(argv: Optional[list[str]] = None) -> int:
             toolbar_layout.addWidget(self.home_button)
             toolbar_layout.addWidget(self.bookmark_button)
             toolbar_layout.addWidget(self.reader_button)
+            toolbar_layout.addWidget(self.zoom_out_button)
+            toolbar_layout.addWidget(self.zoom_in_button)
             toolbar_layout.addWidget(self.url_input, stretch=1)
 
             # Persistence paths and profile
             self.paths = get_app_paths()
             self.settings = load_settings()
             self.blocklist = load_blocklist()
+            self.zoom_factor = float(self.settings.get("zoom_factor", 1.0))
             self.profile = QWebEngineProfile("Default", self)
             try:
                 self.profile.setCachePath(self.paths.cache_dir)
@@ -156,6 +162,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.url_input.returnPressed.connect(self._on_url_entered)
             self.bookmark_button.clicked.connect(self._on_add_bookmark)
             self.reader_button.clicked.connect(self._toggle_reader)
+            self.zoom_in_button.clicked.connect(self._zoom_in)
+            self.zoom_out_button.clicked.connect(self._zoom_out)
 
             # Connect for current tab
             self._connect_current_tab()
@@ -171,6 +179,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             QShortcut(QKeySequence("Alt+Home"), self, activated=lambda: self._navigate_to(self.homepage))
             QShortcut(QKeySequence("Ctrl+Shift+H"), self, activated=self._set_homepage_to_current)
             QShortcut(QKeySequence("Ctrl+Shift+R"), self, activated=self._toggle_reader)
+            QShortcut(QKeySequence("Ctrl++"), self, activated=self._zoom_in)
+            QShortcut(QKeySequence("Ctrl+-"), self, activated=self._zoom_out)
+            QShortcut(QKeySequence("Ctrl+0"), self, activated=self._zoom_reset)
 
             # Reader dock
             self.reader_dock = QDockWidget("Reader", self)
@@ -179,6 +190,17 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.reader_text.setReadOnly(True)
             self.reader_dock.setWidget(self.reader_text)
             self.addDockWidget(0x1, self.reader_dock)  # Left dock area
+
+            # Simple URL completer from bookmarks + history
+            try:
+                urls = [b.url for b in load_bookmarks()]  # type: ignore
+                from .history import load_history as _load_history
+                urls += [h.url for h in _load_history()]  # type: ignore
+                completer = QCompleter(sorted(set(urls)))
+                completer.setCaseSensitivity(False)  # type: ignore[arg-type]
+                self.url_input.setCompleter(completer)
+            except Exception:
+                pass
 
         def _current_web(self) -> QWebEngineView:  # type: ignore[name-defined]
             return self.tabs.currentWidget()  # type: ignore[return-value]
@@ -190,6 +212,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             web.loadProgress.connect(self._on_progress)
             self.tabs.addTab(web, "New Tab")
             web.setUrl(QUrl(target))
+            try:
+                web.setZoomFactor(self.zoom_factor)
+            except Exception:
+                pass
             try:
                 logger.info("Open tab %s", target)
             except Exception:
@@ -298,6 +324,27 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.settings["homepage"] = url
             save_settings(self.settings)
             self.status.showMessage("Homepage set", 2000)
+
+        def _zoom_in(self) -> None:
+            self._set_zoom(self.zoom_factor + 0.1)
+
+        def _zoom_out(self) -> None:
+            self._set_zoom(max(0.25, self.zoom_factor - 0.1))
+
+        def _zoom_reset(self) -> None:
+            self._set_zoom(1.0)
+
+        def _set_zoom(self, value: float) -> None:
+            self.zoom_factor = round(float(value), 2)
+            cur = self._current_web()
+            if cur:
+                try:
+                    cur.setZoomFactor(self.zoom_factor)
+                except Exception:
+                    pass
+            self.settings["zoom_factor"] = self.zoom_factor
+            save_settings(self.settings)
+            self.status.showMessage(f"Zoom: {int(self.zoom_factor*100)}%", 1500)
 
         def _toggle_reader(self) -> None:
             if self.reader_dock.isVisible():
