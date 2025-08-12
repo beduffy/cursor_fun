@@ -33,6 +33,38 @@ except ImportError:
 from PySide6 import QtGui
 
 
+class MediaListWidget(QListWidget):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+        self.setDefaultDropAction(Qt.IgnoreAction)
+
+    def dragEnterEvent(self, event):  # type: ignore[override]
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):  # type: ignore[override]
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):  # type: ignore[override]
+        if not event.mimeData().hasUrls():
+            super().dropEvent(event)
+            return
+        paths = []
+        for url in event.mimeData().urls():
+            local = url.toLocalFile()
+            if local:
+                paths.append(local)
+        self.parent().handle_media_drop(paths)  # type: ignore[attr-defined]
+        event.acceptProposedAction()
+
+
 class TimelineEditorWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -44,7 +76,7 @@ class TimelineEditorWindow(QMainWindow):
         self.history.push(self.project)
 
         # Media bin
-        self.media_list = QListWidget()
+        self.media_list = MediaListWidget(self)
         self.media_list.setSelectionMode(QListWidget.SingleSelection)
 
         add_media_btn = QPushButton("+ Add Media")
@@ -191,14 +223,7 @@ class TimelineEditorWindow(QMainWindow):
         )
         if not paths:
             return
-        for p in paths:
-            try:
-                src = self.project.add_source(p)
-                item = QListWidgetItem(os.path.basename(p))
-                item.setData(Qt.UserRole, src.id)
-                self.media_list.addItem(item)
-            except Exception as exc:
-                QMessageBox.critical(self, "Add Media Failed", str(exc))
+        self._add_media_paths(paths)
 
     
     def add_clip_from_selected(self) -> None:
@@ -227,6 +252,21 @@ class TimelineEditorWindow(QMainWindow):
         drag = QtGui.QDrag(self.media_list)
         drag.setMimeData(mime)
         drag.exec(Qt.CopyAction)
+
+    
+    def handle_media_drop(self, paths):  # called by MediaListWidget
+        self._add_media_paths(paths)
+
+    
+    def _add_media_paths(self, paths):
+        for p in paths:
+            try:
+                src = self.project.add_source(p)
+                item = QListWidgetItem(os.path.basename(p))
+                item.setData(Qt.UserRole, src.id)
+                self.media_list.addItem(item)
+            except Exception as exc:
+                QMessageBox.critical(self, "Add Media Failed", str(exc))
 
     
     def delete_clip(self) -> None:
