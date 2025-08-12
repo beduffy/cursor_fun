@@ -1,0 +1,9 @@
+flowchart LR
+  A["MainWindow app_timeline.py"] --> B["TimelineView timeline.py"]
+  A --> C["PreviewWidget preview.py"]
+  A --> D["MediaListWidget"]
+  A --> E["Project models.py"]
+  B --> E
+  C --> E
+  A --> F["Compositor compositor.py"]
+  F --> G["ffmpeg_utils.py"]

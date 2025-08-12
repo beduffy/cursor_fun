@@ -37,17 +37,7 @@ At a high-level the app is a PySide6 desktop GUI built around three core domains
   - `compositor.py`: Converts a multi-track timeline into linear segments (top-most visible)
 
 
-```mermaid
-flowchart LR
-  A["MainWindow app_timeline.py"] --> B["TimelineView timeline.py"]
-  A --> C["PreviewWidget preview.py"]
-  A --> D["MediaListWidget"]
-  A --> E["Project models.py"]
-  B --> E
-  C --> E
-  A --> F["Compositor compositor.py"]
-  F --> G["ffmpeg_utils.py"]
-```
+![Architecture](docs/diagrams/architecture.png)
 
 The UI widgets manipulate a `Project` instance. Export creates `EditSegment` objects from the project and delegates to ffmpeg.
 
@@ -154,15 +144,7 @@ Export transforms the project into a list of segments and writes an mp4:
 
 Encoder probing uses `ffmpeg -encoders` to decide among `libx264`, `mpeg4`, `h264` for video and `aac`, `libmp3lame` for audio.
 
-```mermaid
-flowchart LR
-  A["Segments"] --> B["Encode each seg (-ss, -t, -c:v enc, -c:a enc)"]
-  B --> C["concat_list.txt"]
-  C --> D["ffmpeg -f concat -c copy"]
-  D -->|ok| E["Output mp4"]
-  D -->|fail| F["ffmpeg re-encode concat"]
-  F --> E
-```
+![Export Flow](docs/diagrams/export_flow.png)
 
 ---
 

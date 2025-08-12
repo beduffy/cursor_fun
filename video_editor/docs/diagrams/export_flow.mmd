@@ -1,0 +1,7 @@
+flowchart LR
+  A["Segments"] --> B["Encode each seg (-ss, -t, -c:v enc, -c:a enc)"]
+  B --> C["concat_list.txt"]
+  C --> D["ffmpeg -f concat -c copy"]
+  D -->|ok| E["Output mp4"]
+  D -->|fail| F["ffmpeg re-encode concat"]
+  F --> E
