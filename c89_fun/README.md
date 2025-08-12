@@ -107,6 +107,7 @@ Advanced additions:
   - `string_builder.c`: growable string builder utility.
   - `bytecode_vm.c`: tiny stack-based VM demo.
   - `json_pretty.c`: pretty-print JSON using the AST.
+  - `union_find.c`: disjoint-set union with path compression and union by rank.
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
