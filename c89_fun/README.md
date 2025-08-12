@@ -46,6 +46,18 @@ Notes:
 - `bitwise_operations.c`: masks, shifts, and bitwise operators.
 - `floating_point.c`: precision, `DBL_EPSILON`, approximate comparisons.
 - `sequence_points_notes.c`: notes on sequence points and undefined behavior pitfalls.
+  
+Advanced additions:
+- `alignment_and_padding.c`: structure padding, alignment, `offsetof`.
+- `endianness.c`: byte order inspection and implications.
+- `memory_pool.c`: fixed-size block allocator (free-list) pattern.
+- `intrusive_list.c`: intrusive singly linked list without heap allocation.
+- `hash_table_linear_probing.c`: open addressing hash table (int→int).
+- `dynamic_array.c`: growable vector with doubling strategy.
+- `fsm_state_machine.c`: a tiny finite state machine for parsing.
+- `minunit.h`, `test_dynamic_array.c`: minimalist unit testing helpers and a sample test.
+
+Testing note: `test_dynamic_array.c` includes `dynamic_array.c` directly so it can access internal `static` helpers in one translation unit. This keeps the example simple under strict C89 flags.
 
 ### How to Study
 
