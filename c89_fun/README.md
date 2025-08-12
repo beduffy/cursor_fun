@@ -99,6 +99,9 @@ Advanced additions:
   - `lz4_lite.c`: educational LZ4-like encoder/decoder (not format-compatible).
   - `json_writer.c`: emit JSON from the tiny AST.
   - `job_system.c`: cooperative scheduler with priorities and timeslices.
+  - `string_builder.c`: growable string builder utility.
+  - `bytecode_vm.c`: tiny stack-based VM demo.
+  - `json_pretty.c`: pretty-print JSON using the AST.
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
