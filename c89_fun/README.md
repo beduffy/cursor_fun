@@ -109,6 +109,7 @@ Advanced additions:
   - `json_pretty.c`: pretty-print JSON using the AST.
   - `union_find.c`: disjoint-set union with path compression and union by rank.
   - `fixed_point.c`: Q16.16 fixed-point arithmetic demo (mul/div).
+  - `raster_ppm.c`: draw lines (Bresenham) and filled triangle to a PPM image.
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
