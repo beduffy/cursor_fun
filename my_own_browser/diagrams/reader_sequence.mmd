@@ -1,0 +1,10 @@
+
+sequenceDiagram
+  participant GUI
+  participant Requests
+  participant Renderer
+  GUI->>Requests: GET URL (reader mode)
+  Requests-->>GUI: HTML
+  GUI->>Renderer: render_html_to_terminal(html, base_url)
+  Renderer-->>GUI: Text blocks
+  GUI->>GUI: Show in docked reader pane

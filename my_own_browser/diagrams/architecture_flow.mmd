@@ -1,0 +1,12 @@
+
+flowchart TD
+  User["User Actions\n(URL bar, buttons, shortcuts)"] --> GUI[(Qt GUI)]
+  GUI -->|navigate| Fetcher[Browser.fetch]
+  Fetcher --> HTML[(HTML)]
+  HTML -->|rendered-by| QtWebEngine[(Chromium engine)]
+  HTML --> Reader[Text Renderer]
+  Reader --> GUI
+  GUI --> Persist[Bookmarks/History/Settings]
+  Persist --> Files[(~/.config/my_own_browser/...)]
+  GUI --> Downloads[(~/Downloads)]
+  GUI --> Logs[(~/.config/my_own_browser/logs/app.log)]
