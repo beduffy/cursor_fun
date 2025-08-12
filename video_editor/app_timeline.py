@@ -55,6 +55,17 @@ class TimelineEditorWindow(QMainWindow):
         left_layout.addWidget(QLabel("Media Bin"))
         left_layout.addWidget(self.media_list)
         left_layout.addWidget(add_media_btn)
+        # Zoom controls
+        zoom_row = QHBoxLayout()
+        z_in = QPushButton("+")
+        z_out = QPushButton("-")
+        z_in.clicked.connect(lambda: self._zoom(0.9))
+        z_out.clicked.connect(lambda: self._zoom(1.1))
+        zoom_row.addWidget(QLabel("Zoom"))
+        zoom_row.addStretch(1)
+        zoom_row.addWidget(z_out)
+        zoom_row.addWidget(z_in)
+        left_layout.addLayout(zoom_row)
         left_layout.addStretch(1)
         left_layout.addWidget(export_btn)
 
@@ -115,8 +126,20 @@ class TimelineEditorWindow(QMainWindow):
 
         delete_clip_action = QAction(self)
         delete_clip_action.setShortcut(QKeySequence.Delete)
-        delete_clip_action.triggered.connect(self.delete_clip_at_playhead)
+        delete_clip_action.triggered.connect(self.delete_clip)
         self.addAction(delete_clip_action)
+
+        # Toggle snapping (G)
+        toggle_snap_action = QAction(self)
+        toggle_snap_action.setShortcut(Qt.Key_G)
+        toggle_snap_action.triggered.connect(self.toggle_snapping)
+        self.addAction(toggle_snap_action)
+
+        # Split at playhead (S)
+        split_action = QAction(self)
+        split_action.setShortcut(Qt.Key_S)
+        split_action.triggered.connect(self.split_selected_at_playhead)
+        self.addAction(split_action)
 
     
     def add_media(self) -> None:
@@ -161,12 +184,13 @@ class TimelineEditorWindow(QMainWindow):
         drag.exec(Qt.CopyAction)
 
     
-    def delete_clip_at_playhead(self) -> None:
-        # MVP: delete the last added clip (no playhead implemented yet)
+    def delete_clip(self) -> None:
+        # Delete selected clip if any; otherwise delete last added
         if not self.project.clips:
             return
-        last_id = max(self.project.clips.keys())
-        self.project.remove_clip(last_id)
+        selected_id = getattr(self.timeline, 'selected_clip_id', None)
+        target_id = selected_id if selected_id in self.project.clips else max(self.project.clips.keys())
+        self.project.remove_clip(target_id)
         self.timeline.update()
 
     
@@ -198,6 +222,26 @@ class TimelineEditorWindow(QMainWindow):
         m = int((t % 3600) // 60)
         s = t % 60
         self.time_label.setText(f"{h:02d}:{m:02d}:{s:06.3f}")
+
+    
+    def toggle_snapping(self) -> None:
+        current = getattr(self.timeline, 'snapping_enabled', True)
+        self.timeline.snapping_enabled = not current
+        status = "ON" if self.timeline.snapping_enabled else "OFF"
+        self.statusBar().showMessage(f"Snapping: {status}", 2000)
+
+    
+    def _zoom(self, factor: float) -> None:
+        self.timeline.seconds_per_pixel = max(0.001, min(0.5, self.timeline.seconds_per_pixel * factor))
+        self.timeline.update()
+
+    
+    def split_selected_at_playhead(self) -> None:
+        clip_id = getattr(self.timeline, 'selected_clip_id', None)
+        if clip_id is None:
+            return
+        self.project.split_clip(clip_id, self.timeline.playhead_time)
+        self.timeline.update()
 
     
     def export(self) -> None:

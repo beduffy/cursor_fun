@@ -33,6 +33,10 @@ class TimelineView(QWidget):
         self.setAcceptDrops(True)
         self.drag_state = None  # ('move'|'trim_left'|'trim_right', clip_id, start_pos, start_time)
         self.playhead_time = 0.0
+        self.selected_clip_id = None
+        self.snapping_enabled = True
+        self.view_offset_seconds = 0.0
+        self.selected_clip_id = None
 
     
     def sizeHint(self):  # type: ignore[override]
@@ -71,7 +75,7 @@ class TimelineView(QWidget):
         # Draw clips
         painter.setPen(QPen(QColor(20, 20, 20)))
         for clip in self.project.clips.values():
-            x = int(clip.timeline_start / self.seconds_per_pixel)
+            x = int((clip.timeline_start - self.view_offset_seconds) / self.seconds_per_pixel)
             w = int((clip.source_out - clip.source_in) / self.seconds_per_pixel)
             y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
             clip_rect = QRectF(x, y, max(6, w), self.track_height)
@@ -92,11 +96,16 @@ class TimelineView(QWidget):
                 pass
             # Draw a simple label
             painter.setPen(QPen(QColor(240, 240, 240)))
-            painter.drawText(clip_rect.adjusted(6, 4, -6, -4), Qt.AlignLeft | Qt.AlignVCenter, f"Clip {clip.id}")
+            try:
+                src_path = self.project.sources[clip.source_id].path
+                base = src_path.split('/')[-1]
+            except Exception:
+                base = f"Clip {clip.id}"
+            painter.drawText(clip_rect.adjusted(6, 4, -6, -4), Qt.AlignLeft | Qt.AlignVCenter, base)
             painter.setPen(QPen(QColor(20, 20, 20)))
 
         # Playhead
-        play_x = int(self.playhead_time / self.seconds_per_pixel)
+        play_x = int((self.playhead_time - self.view_offset_seconds) / self.seconds_per_pixel)
         painter.setPen(QPen(QColor(200, 60, 60), 2))
         painter.drawLine(play_x, 0, play_x, rect.height())
 
@@ -107,7 +116,7 @@ class TimelineView(QWidget):
         # set playhead if clicked in empty area
         res = self._hit_test(event.position())
         if res.clip_id is None:
-            self.playhead_time = max(0.0, float(event.position().x()) * self.seconds_per_pixel)
+            self.playhead_time = max(0.0, float(event.position().x()) * self.seconds_per_pixel + self.view_offset_seconds)
             self.update()
             self.playheadChanged.emit(self.playhead_time)
             return
@@ -145,18 +154,27 @@ class TimelineView(QWidget):
         dx_pixels = event.position().x() - start_pos.x()
         dx_seconds = float(dx_pixels) * self.seconds_per_pixel
         if mode == 'move':
-            clip.timeline_start = max(0.0, clip.timeline_start + dx_seconds)
+            target_start = max(0.0, clip.timeline_start + dx_seconds)
+            if self.snapping_enabled:
+                target_start = self._apply_snapping_time(target_start, exclude_clip_id=clip.id)
+            clip.timeline_start = target_start
             # vertical track change: snap to track under cursor
             cursor_y = float(event.position().y())
             track = int(max(0, (cursor_y - self.ruler_height) // float(self.track_height + self.row_gap)))
             track = min(self.project.track_count - 1, track)
             clip.track_index = track
         elif mode == 'trim_left':
-            new_in = max(0.0, clip.source_in + dx_seconds)
+            new_left = clip.timeline_start + dx_seconds
+            snapped_left = self._apply_snapping_time(new_left, exclude_clip_id=clip.id) if self.snapping_enabled else new_left
+            delta_left = snapped_left - clip.timeline_start
+            new_in = max(0.0, clip.source_in + delta_left)
             new_in = min(new_in, clip.source_out - 0.05)
             clip.source_in = new_in
         elif mode == 'trim_right':
-            new_out = max(clip.source_in + 0.05, clip.source_out + dx_seconds)
+            current_right = clip.timeline_start + (clip.source_out - clip.source_in)
+            snapped_right = self._apply_snapping_time(current_right + dx_seconds, exclude_clip_id=clip.id) if self.snapping_enabled else (current_right + dx_seconds)
+            delta = snapped_right - current_right
+            new_out = max(clip.source_in + 0.05, clip.source_out + delta)
             clip.source_out = new_out
         self.drag_state = (mode, clip_id, event.position(), None)
         self.update()
@@ -171,7 +189,7 @@ class TimelineView(QWidget):
     def _hit_test(self, pos: QPointF) -> HitTestResult:
         # Iterate topmost-first by natural id order is fine for now
         for clip in self.project.clips.values():
-            x = int(clip.timeline_start / self.seconds_per_pixel)
+            x = int((clip.timeline_start - self.view_offset_seconds) / self.seconds_per_pixel)
             w = int((clip.source_out - clip.source_in) / self.seconds_per_pixel)
             y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
             rect = QRectF(x, y, max(6, w), self.track_height)
@@ -239,5 +257,24 @@ class TimelineView(QWidget):
         clip = self.project.add_clip(source_id, 0.0, length, time_s, track)
         self.update()
         event.acceptProposedAction()
+
+    
+    def _apply_snapping_time(self, t: float, exclude_clip_id: Optional[int] = None) -> float:
+        threshold = 8.0 * self.seconds_per_pixel
+        candidates = [self.playhead_time]
+        for c in self.project.clips.values():
+            if exclude_clip_id is not None and c.id == exclude_clip_id:
+                continue
+            start = c.timeline_start
+            end = c.timeline_start + (c.source_out - c.source_in)
+            candidates.extend([start, end])
+        best = t
+        best_d = threshold + 1.0
+        for s in candidates:
+            d = abs(s - t)
+            if d < best_d and d <= threshold:
+                best = s
+                best_d = d
+        return best
 
 
