@@ -12,9 +12,10 @@ Requires:
 
 import argparse
 import sys
+from typing import Optional, List
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Headless page screenshot (Chromium)")
     parser.add_argument("--url", required=True, help="URL to screenshot")
     parser.add_argument("--out", required=True, help="Output PNG path")
@@ -24,7 +25,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     try:
         from playwright.sync_api import sync_playwright
