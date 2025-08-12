@@ -56,6 +56,30 @@ Advanced additions:
 - `dynamic_array.c`: growable vector with doubling strategy.
 - `fsm_state_machine.c`: a tiny finite state machine for parsing.
 - `minunit.h`, `test_dynamic_array.c`: minimalist unit testing helpers and a sample test.
+ - `arena_allocator.c`: bump-pointer arena with mark/reset and alignment.
+ - `binary_io_endianness.c`: reading/writing 32-bit values in a portable big-endian format.
+ - `adler32.c`: Adler-32 checksum implementation.
+ - `cooperative_scheduler.c`: coroutine-like cooperative tasks using program counters.
+ - `goto_error_handling.c`: structured cleanup with `goto` for multi-step operations.
+  - `mini_printf.c`: tiny printf subset (%s %d %u %x %c and %% ) implemented from scratch.
+  - `crc32.c`: CRC-32 checksum with a generated lookup table.
+  - `utf8_validate.c`: strict(ish) UTF-8 validation (rejects overlongs, surrogates).
+  - `ring_buffer.c`: single-producer/single-consumer circular buffer.
+  - `bst_tree.c`: binary search tree insert/search/traverse/free.
+  - `json_tokenizer.c`: small tokenizer for JSON-like input.
+  - `pack_unpack.c`: manual bit packing/unpacking for protocol bytes.
+  - `donut_ascii.c`: classic spinning ASCII donut using incremental rotations.
+  - `base64.c`: base64 encoder implementation.
+  - `memmove_impl.c`: reimplementing `memmove` with overlap handling.
+  - `MAKE_TUTORIAL.md`: a practical guide to GNU Make tailored to this repo.
+
+Optional future (libraries not included in default build):
+- OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
+- SDL2 demos: create `sdl_demo/` with a separate `Makefile`. These will not affect `make run` here.
+
+How to run the optional demos (Linux):
+- OpenGL/GLX: `make -C c89_fun/opengl_demo run` (requires `libx11-dev` and `mesa-common-dev`/OpenGL headers)
+- SDL2: `make -C c89_fun/sdl_demo run` (requires `libsdl2-dev` and `sdl2-config` on PATH)
 
 Testing note: `test_dynamic_array.c` includes `dynamic_array.c` directly so it can access internal `static` helpers in one translation unit. This keeps the example simple under strict C89 flags.
 
