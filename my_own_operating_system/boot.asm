@@ -34,14 +34,14 @@ start:
     ; Load stage2 (1 sector) to 0x0000:0x7E00 using BIOS INT 13h
     mov bx, 0x7E00          ; ES:BX = 0000:7E00
     mov es, ax              ; ES = 0x0000
-    ; Try to read stage2 with retries
+    ; Try CHS read with retries first
 .read_retry:
-    mov ah, 0x02            ; INT 13h, AH=2: Read sectors
-    mov al, 0x01            ; AL = number of sectors to read
-    mov ch, 0x00            ; Cylinder 0
-    mov cl, 0x02            ; Sector 2 (LBA1)
-    mov dh, 0x00            ; Head 0
-    mov dl, [boot_drive]    ; Use actual boot drive from BIOS
+    mov ah, 0x02
+    mov al, 0x01
+    mov ch, 0x00
+    mov cl, 0x02
+    mov dh, 0x00
+    mov dl, [boot_drive]
     int 0x13
     jnc .read_ok
     ; print error code AH as hex
@@ -54,18 +54,36 @@ start:
     call bios_putchar
     mov al, '='
     call bios_putchar
-    pop ax                   ; AH contains error
-    xchg ah, al              ; move error to AL
+    pop ax
+    xchg ah, al
     call print_hex8
     mov al, ']'
     call bios_putchar
-    ; reset disk and retry up to 3 times
+    ; reset disk and retry up to 2 more times
     mov dl, [boot_drive]
     mov ah, 0x00
     int 0x13
     dec byte [retries]
     jnz .read_retry
-    jmp .disk_error
+
+    ; Fallback to INT13h extensions (LBA) if supported
+    mov dl, [boot_drive]
+    mov ah, 0x41
+    mov bx, 0x55AA
+    int 0x13
+    jc .disk_error
+    cmp bx, 0xAA55
+    jne .disk_error
+    ; Prepare DAP for LBA 1 -> 0000:7E00
+    mov word [dap+2], 1         ; sectors=1
+    mov dword [dap+4], 0x00007E00 ; buffer ptr (offset:segment)
+    mov dword [dap+8], 1        ; LBA low dword
+    mov dword [dap+12], 0       ; LBA high dword
+    mov si, dap
+    mov ah, 0x42
+    mov dl, [boot_drive]
+    int 0x13
+    jc .disk_error
 .read_ok:
     ; Indicate success
     mov si, ok1_msg
@@ -104,6 +122,15 @@ disk_msg db "Disk read error", 0
 boot_drive db 0
 retries db 3
 ok1_msg db " [OK]", 0
+
+; Disk Address Packet (DAP) for INT 13h Extensions read (AH=42h)
+dap:
+    db 0x10            ; size of packet
+    db 0x00            ; reserved
+    dw 0x0000          ; sectors to transfer (will set at runtime)
+    dd 0x00000000      ; buffer offset:segment (will set at runtime)
+    dd 0x00000000      ; LBA low dword (will set at runtime)
+    dd 0x00000000      ; LBA high dword (will set at runtime)
 
 ; ------------------------
 ; Tiny BIOS teletype helpers
