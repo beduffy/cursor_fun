@@ -108,6 +108,7 @@ Advanced additions:
   - `bytecode_vm.c`: tiny stack-based VM demo.
   - `json_pretty.c`: pretty-print JSON using the AST.
   - `union_find.c`: disjoint-set union with path compression and union by rank.
+  - `fixed_point.c`: Q16.16 fixed-point arithmetic demo (mul/div).
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
