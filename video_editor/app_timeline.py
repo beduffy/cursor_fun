@@ -153,6 +153,12 @@ class TimelineEditorWindow(QMainWindow):
         vis_action.triggered.connect(self.toggle_selected_track_visibility)
         self.addAction(vis_action)
 
+        # Duplicate selected (D)
+        dup_action = QAction(self)
+        dup_action.setShortcut(Qt.Key_D)
+        dup_action.triggered.connect(self.duplicate_selected)
+        self.addAction(dup_action)
+
         # Undo/Redo
         undo_action = QAction(self)
         undo_action.setShortcut(QKeySequence.Undo)
@@ -288,6 +294,18 @@ class TimelineEditorWindow(QMainWindow):
         track = self.project.clips[clip_id].track_index
         self.project.toggle_track_visible(track)
         self.timeline.update()
+
+    
+    def duplicate_selected(self) -> None:
+        clip_id = getattr(self.timeline, 'selected_clip_id', None)
+        if clip_id is None:
+            return
+        new_clip = self.project.duplicate_clip(clip_id)
+        if new_clip is not None:
+            # nudge right by 0.5s to avoid overlap
+            new_clip.timeline_start += 0.5
+        self.timeline.update()
+        self.history.push(self.project)
 
     
     def undo(self) -> None:

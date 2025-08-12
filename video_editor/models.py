@@ -126,6 +126,23 @@ class Project:
         return right_clip
 
     
+    def duplicate_clip(self, clip_id: int) -> Optional[Clip]:
+        clip = self.clips.get(clip_id)
+        if clip is None:
+            return None
+        dup = Clip(
+            id=self.next_clip_id,
+            source_id=clip.source_id,
+            source_in=clip.source_in,
+            source_out=clip.source_out,
+            timeline_start=clip.timeline_start,
+            track_index=clip.track_index,
+        )
+        self.clips[dup.id] = dup
+        self.next_clip_id += 1
+        return dup
+
+    
     def to_dict(self) -> dict:
         return {
             "sources": [
