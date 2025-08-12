@@ -1,0 +1,12 @@
+{
+    "manifest_version": 3,
+    "name": "Quick Note Sender",
+    "version": "1.0",
+    "permissions": ["identity", "activeTab"],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "background": {
+    }
+  }
+  
