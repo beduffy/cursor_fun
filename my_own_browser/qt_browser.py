@@ -16,7 +16,7 @@ import os
 import sys
 from typing import Optional
 
-from .storage import get_app_paths
+from .storage import get_app_paths, load_settings, save_settings
 from .bookmarks import add_bookmark, load_bookmarks
 from .history import add_to_history
 
@@ -49,6 +49,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             QStatusBar,
             QToolBar,
             QVBoxLayout,
+            QDockWidget,
+            QPlainTextEdit,
             QWidget,
         )
         from PySide6.QtGui import QShortcut, QKeySequence
@@ -82,7 +84,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.back_button = QPushButton("←")
             self.forward_button = QPushButton("→")
             self.reload_button = QPushButton("⟳")
+            self.home_button = QPushButton("🏠")
             self.bookmark_button = QPushButton("★")
+            self.reader_button = QPushButton("Reader")
             self.url_input = QLineEdit()
             self.url_input.setPlaceholderText("Enter URL…")
 
@@ -94,11 +98,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             toolbar_layout.addWidget(self.back_button)
             toolbar_layout.addWidget(self.forward_button)
             toolbar_layout.addWidget(self.reload_button)
+            toolbar_layout.addWidget(self.home_button)
             toolbar_layout.addWidget(self.bookmark_button)
+            toolbar_layout.addWidget(self.reader_button)
             toolbar_layout.addWidget(self.url_input, stretch=1)
 
             # Persistence paths and profile
             self.paths = get_app_paths()
+            self.settings = load_settings()
             self.profile = QWebEngineProfile("Default", self)
             try:
                 self.profile.setCachePath(self.paths.cache_dir)
@@ -121,7 +128,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.tabs.currentChanged.connect(self._on_tab_changed)
 
             # Create initial tab
-            self.homepage = "https://example.com"
+            self.homepage = self.settings.get("homepage", "https://example.com")
             self._add_tab(self.homepage)
 
             # Central layout
@@ -140,8 +147,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.back_button.clicked.connect(lambda: self._current_web().back())
             self.forward_button.clicked.connect(lambda: self._current_web().forward())
             self.reload_button.clicked.connect(lambda: self._current_web().reload())
+            self.home_button.clicked.connect(lambda: self._navigate_to(self.homepage))
             self.url_input.returnPressed.connect(self._on_url_entered)
             self.bookmark_button.clicked.connect(self._on_add_bookmark)
+            self.reader_button.clicked.connect(self._toggle_reader)
 
             # Connect for current tab
             self._connect_current_tab()
@@ -154,6 +163,17 @@ def main(argv: Optional[list[str]] = None) -> int:
             QShortcut(QKeySequence("Ctrl+B"), self, activated=self._show_bookmarks)
             QShortcut(QKeySequence("Ctrl+H"), self, activated=self._show_history)
             QShortcut(QKeySequence("Ctrl+F"), self, activated=self._find_in_page)
+            QShortcut(QKeySequence("Alt+Home"), self, activated=lambda: self._navigate_to(self.homepage))
+            QShortcut(QKeySequence("Ctrl+Shift+H"), self, activated=self._set_homepage_to_current)
+            QShortcut(QKeySequence("Ctrl+Shift+R"), self, activated=self._toggle_reader)
+
+            # Reader dock
+            self.reader_dock = QDockWidget("Reader", self)
+            self.reader_dock.setVisible(False)
+            self.reader_text = QPlainTextEdit(self.reader_dock)
+            self.reader_text.setReadOnly(True)
+            self.reader_dock.setWidget(self.reader_text)
+            self.addDockWidget(0x1, self.reader_dock)  # Left dock area
 
         def _current_web(self) -> QWebEngineView:  # type: ignore[name-defined]
             return self.tabs.currentWidget()  # type: ignore[return-value]
@@ -201,6 +221,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             self.status.showMessage(f"Loading… {val}%")
             if val == 100:
                 self.status.clearMessage()
+                # Update reader if open
+                if self.reader_dock.isVisible():
+                    try:
+                        self._render_reader_for_url(self._current_web().url().toString())
+                    except Exception:
+                        pass
 
         def _on_download_requested(self, req: QWebEngineDownloadRequest) -> None:  # type: ignore[name-defined]
             try:
@@ -249,6 +275,38 @@ def main(argv: Optional[list[str]] = None) -> int:
             if cur:
                 from PySide6.QtCore import QUrl as _QUrl
                 cur.setUrl(_QUrl(url))
+
+        def _set_homepage_to_current(self) -> None:
+            cur = self._current_web()
+            if not cur:
+                return
+            url = cur.url().toString()
+            self.homepage = url
+            self.settings["homepage"] = url
+            save_settings(self.settings)
+            self.status.showMessage("Homepage set", 2000)
+
+        def _toggle_reader(self) -> None:
+            if self.reader_dock.isVisible():
+                self.reader_dock.hide()
+                return
+            # Show and render
+            self.reader_dock.show()
+            try:
+                self._render_reader_for_url(self._current_web().url().toString())
+            except Exception as exc:
+                self.reader_text.setPlainText(f"Reader failed: {exc}")
+
+        def _render_reader_for_url(self, url: str) -> None:
+            # Fetch and render using our text renderer
+            import requests
+            from .renderer import render_html_to_terminal
+            self.status.showMessage("Rendering reader…")
+            resp = requests.get(url, timeout=7)
+            resp.raise_for_status()
+            text = render_html_to_terminal(resp.text, base_url=url, max_width=100)
+            self.reader_text.setPlainText(text)
+            self.status.showMessage("Reader ready", 1500)
 
         def _show_history(self) -> None:
             from .history import load_history

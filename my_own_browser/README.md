@@ -20,6 +20,14 @@ QT_QPA_PLATFORM=xcb python -m my_own_browser.qt_browser https://example.com
 # Shortcuts: Ctrl+L (URL), Ctrl+T/W (new/close tab), Ctrl+R (reload), Ctrl+B (bookmarks), Ctrl+H (history), Ctrl+F (find)
 ```
 
+Features:
+- Tabs, persistent cookies/cache, downloads to `~/Downloads`
+- Bookmarks (★ button, Ctrl+B) saved under `~/.config/my_own_browser/bookmarks.json`
+- History (Ctrl+H) saved under `~/.config/my_own_browser/history.json`
+- Find in page (Ctrl+F)
+- Homepage (Alt+Home), set current as homepage (Ctrl+Shift+H)
+- Reader mode (Ctrl+Shift+R) renders current page in a side dock using the built-in text renderer
+
 Headless screenshot (proves real rendering):
 
 ```bash
