@@ -14,6 +14,9 @@ start:
     mov sp, 0x7C00
     sti
 
+    ; Remember BIOS boot drive (DL)
+    mov [boot_drive], dl
+
     ; Print initial message
     mov si, msg
 .print_loop:
@@ -35,7 +38,7 @@ start:
     mov ch, 0x00            ; Cylinder 0
     mov cl, 0x02            ; Sector 2 (LBA1)
     mov dh, 0x00            ; Head 0
-    mov dl, 0x00            ; Drive 0 (A:)
+    mov dl, [boot_drive]    ; Use actual boot drive from BIOS
     int 0x13
     jc .disk_error
 
@@ -60,6 +63,7 @@ start:
 
 msg db "BenOS: Loading stage2...", 0
 disk_msg db "Disk read error", 0
+boot_drive db 0
 
 ; Pad to 510 bytes, then add boot signature 0x55AA
 TIMES 510 - ($ - $$) db 0

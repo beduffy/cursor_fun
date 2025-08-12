@@ -27,7 +27,7 @@ start_stage2:
     mov ch, 0x00            ; cylinder 0
     mov cl, 0x03            ; sector 3 (LBA2)
     mov dh, 0x00            ; head 0
-    mov dl, 0x00            ; drive 0 (A:)
+    ; DL already contains boot drive from BIOS; keep it unchanged
     int 0x13
     jc disk_error
 
