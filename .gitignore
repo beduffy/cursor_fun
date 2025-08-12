@@ -4,3 +4,9 @@ MUJOCO_LOG.TXT
 c89_fun/bin/
 
 *.pyc
+
+# OS dev artifacts and large logs (prevent huge files in repo)
+my_own_operating_system/qemu.log
+my_own_operating_system/debug.log
+my_own_operating_system/disk.img
+*.log
