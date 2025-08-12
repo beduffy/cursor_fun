@@ -97,6 +97,8 @@ Advanced additions:
   - `priority_scheduler.c`: scheduler using a priority queue.
   - `ini_writer.c`: writing INI files.
   - `lz4_lite.c`: educational LZ4-like encoder/decoder (not format-compatible).
+  - `json_writer.c`: emit JSON from the tiny AST.
+  - `job_system.c`: cooperative scheduler with priorities and timeslices.
 
 Optional future (libraries not included in default build):
 - OpenGL/GLX demos (Linux): create `opengl_demo/` with its own `Makefile` and package configs.
