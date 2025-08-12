@@ -1,19 +1,24 @@
-## Video Editor (MVP)
+## Video Editor
 
-A minimal desktop video editor built with PySide6 and ffmpeg. It lets you:
+A minimal desktop video editor built with PySide6 and ffmpeg.
 
-- Load videos and preview them
+MVP list editor:
+- Load videos and preview them (OpenCV-based preview)
 - Play/pause and scrub with a timeline
 - Mark In/Out points and add segments to an edit list
 - Reorder or delete segments
-- Export the final edit via ffmpeg (re-encodes for safety)
+- Export via ffmpeg (re-encodes for safety)
 
-New multi-track MVP (DaVinci-style basics):
-
-- Media bin, add multiple sources
-- Timeline with multiple tracks
-- Drag to move clips horizontally, trim at edges
-- Export flattens the timeline by top-most clip priority
+Multi-track timeline (DaVinci-style basics):
+- Media bin with multiple sources (supports OS drag-and-drop)
+- Timeline with multiple tracks; drag to move, edge-trim; vertical drag to change track
+- Selection: single, Ctrl multi-select, marquee (Shift+drag)
+- Snapping to playhead and clip edges (G to toggle)
+- Split at playhead (S), Delete selected, Duplicate (D)
+- Zoom (Ctrl+Wheel, +/− buttons), Pan (Shift+Wheel), horizontal scrollbar
+- Follow playhead (F)
+- Track header: lock/mute/visibility (per-track state persisted)
+- Export flattens top-most visible track priority; encoder selection is probed; appends .mp4 extension when omitted
 
 ### Quickstart
 
@@ -44,32 +49,36 @@ python app_timeline.py
 
 ### Usage
 
-- File → Open Video… to load a source video. You can load multiple sources; pick the active one from the dropdown at the top.
+- File → Open Video… to load sources, or drag files into the media bin
 - Space: Play/Pause
-- I: Set In point at current time
-- O: Set Out point at current time
-- A: Add current [In, Out] segment to the edit list
-- Delete: Remove selected segment(s) from the edit list
-- Drag to reorder segments in the list
-- Export: Choose output path and render the concatenated edit via ffmpeg
+- I / O / A: In, Out, Add Segment (list editor)
+- S: Split at playhead (timeline)
+- D: Duplicate selected clip
+- Delete: Remove selected clips
+- G: Toggle snapping
+- F: Toggle follow-playhead
+- Ctrl+Wheel / + / −: Zoom; Shift+Wheel: Pan; horizontal slider: pan
+- Marquee selection: Shift+drag on empty timeline
+- Track header click: toggle lock; context toggles via shortcuts (M/V in app)
+- Export: Choose output path and render via ffmpeg
 
 Notes:
-- Export uses re-encoding (`libx264` + `aac`) for compatibility and consistent output.
-- Preview uses OpenCV; audio is not played in the preview for simplicity.
+- Export uses re-encoding (prefers `libx264` + `aac` if present; falls back to available encoders).
+- Preview uses OpenCV for frames; audio is not played yet.
 
 ### Tests
 
 Run unit and integration tests (ffmpeg must be installed):
 ```bash
-pytest -q
+PYTHONPATH=. pytest -q video_editor/tests
 ```
 
 ### Roadmap
 
-- Ripple trim, split on playhead
+- Ripple/roll/slip/slide trims; visual snap guides
 - Audio waveform and audio preview
 - Basic transitions (crossfade), text overlays, and filters
 - Per-clip scaling/cropping and speed adjustments
-- Project save/load (.json)
+- Project autosave, relink missing media, undo coalescing
 
 
