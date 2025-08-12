@@ -16,11 +16,14 @@ $(BIN_DIR)/%: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 run: all
-	@echo "Running all C89 examples...";
+	@echo "Running C89 examples...";
 	@set -e; for f in $(EXE); do \
-	  echo "==> $$f"; \
-	  "$$f" | sed 's/^/  /'; \
-	  echo; \
+	  name=$$(basename $$f); \
+	  if [ -z "$(FILTER)" ] || echo "$$name" | grep -E "$(FILTER)" >/dev/null 2>&1; then \
+	    echo "==> $$f"; \
+	    "$$f" | sed 's/^/  /'; \
+	    echo; \
+	  fi; \
 	done
 
 list:

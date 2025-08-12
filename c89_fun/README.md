@@ -12,6 +12,11 @@ This folder contains many small, focused C89 programs. Each file is a self-conta
   ```bash
   make -C c89_fun run
   ```
+- Run only matching executables (regex on names):
+  ```bash
+  make -C c89_fun run FILTER=donut
+  make -C c89_fun run FILTER='json|ini'
+  ```
 - Clean binaries:
   ```bash
   make -C c89_fun clean
