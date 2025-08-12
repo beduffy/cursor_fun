@@ -5,7 +5,7 @@ import re
 from typing import Iterable
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 
 def truncate_text(text: str, max_chars: int = 2000) -> str:
@@ -108,6 +108,19 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
         "nav", "blockquote",
     }
 
+    def _inline_text_with_images(parent) -> str:
+        parts: list[str] = []
+        for content in getattr(parent, "descendants", []):
+            name = getattr(content, "name", None)
+            if isinstance(content, NavigableString) and not name:
+                parts.append(str(content))
+            elif name == "img":
+                alt = content.get("alt")
+                src = content.get("src")
+                label = alt or src or "image"
+                parts.append(f"[IMG {label}]")
+        return _normalize_inline_text(" ".join(parts))
+
     def emit_node(node):
         name = getattr(node, "name", None)
         if not name:
@@ -160,7 +173,9 @@ def render_html_to_terminal(html: str, base_url: str = "", max_width: int = 100,
 
         if name in block_tags:
             add_blank_line()
-            emit_paragraph(node.get_text(" ", strip=True))
+            # Preserve inline images as tokens within text
+            text_with_tokens = _inline_text_with_images(node)
+            emit_paragraph(text_with_tokens)
             add_blank_line()
             return
 

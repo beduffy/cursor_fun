@@ -12,8 +12,11 @@ Requires:
     pip install PySide6
 """
 
+import os
 import sys
 from typing import Optional
+
+from .storage import get_app_paths
 
 
 def guess_url(text: str) -> str:
@@ -27,6 +30,8 @@ def guess_url(text: str) -> str:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    # Prefer X11 (xcb) by default to avoid Wayland/libffi issues in some envs
+    os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
     try:
         from PySide6.QtCore import QUrl
         from PySide6.QtWidgets import (
@@ -35,16 +40,24 @@ def main(argv: Optional[list[str]] = None) -> int:
             QLineEdit,
             QMainWindow,
             QPushButton,
+            QTabWidget,
             QStatusBar,
             QToolBar,
             QVBoxLayout,
             QWidget,
         )
+        from PySide6.QtGui import QShortcut, QKeySequence
+        from PySide6.QtWebEngineCore import (
+            QWebEngineProfile,
+            QWebEnginePage,
+            QWebEngineDownloadRequest,
+        )
         from PySide6.QtWebEngineWidgets import QWebEngineView
     except Exception as exc:  # pragma: no cover - exercised at runtime
         sys.stderr.write(
             "PySide6 with QtWebEngine is required.\n"
-            "Install with: pip install PySide6\n"
+            "Try: pip install PySide6 (or conda install -c conda-forge pyside6)\n"
+            "If you see Wayland/libffi errors, try: QT_QPA_PLATFORM=xcb python -m my_own_browser.qt_browser\n"
             f"Error: {exc}\n"
         )
         return 1
@@ -77,39 +90,126 @@ def main(argv: Optional[list[str]] = None) -> int:
             toolbar_layout.addWidget(self.reload_button)
             toolbar_layout.addWidget(self.url_input, stretch=1)
 
-            # Web view
-            self.web = QWebEngineView()
+            # Persistence paths and profile
+            self.paths = get_app_paths()
+            self.profile = QWebEngineProfile("Default", self)
+            try:
+                self.profile.setCachePath(self.paths.cache_dir)
+                self.profile.setPersistentStoragePath(self.paths.config_dir)
+                if hasattr(self.profile, "setPersistentCookiesPolicy"):
+                    self.profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+            # Downloads
+            try:
+                self.profile.downloadRequested.connect(self._on_download_requested)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+            # Tabs
+            self.tabs = QTabWidget()
+            self.tabs.setTabsClosable(True)
+            self.tabs.tabCloseRequested.connect(self._close_tab)
+            self.tabs.currentChanged.connect(self._on_tab_changed)
+
+            # Create initial tab
+            self.homepage = "https://example.com"
+            self._add_tab(self.homepage)
 
             # Central layout
             central = QWidget()
             vbox = QVBoxLayout(central)
             vbox.setContentsMargins(0, 0, 0, 0)
-            vbox.addWidget(self.web)
+            vbox.addWidget(self.tabs)
             self.setCentralWidget(central)
 
             # Status bar
             self.status = QStatusBar()
             self.setStatusBar(self.status)
+            self.status.setSizeGripEnabled(True)
 
             # Signals
-            self.back_button.clicked.connect(self.web.back)
-            self.forward_button.clicked.connect(self.web.forward)
-            self.reload_button.clicked.connect(self.web.reload)
+            self.back_button.clicked.connect(lambda: self._current_web().back())
+            self.forward_button.clicked.connect(lambda: self._current_web().forward())
+            self.reload_button.clicked.connect(lambda: self._current_web().reload())
             self.url_input.returnPressed.connect(self._on_url_entered)
-            self.web.urlChanged.connect(self._on_url_changed)
-            self.web.loadProgress.connect(self._on_progress)
+
+            # Connect for current tab
+            self._connect_current_tab()
+
+            # Shortcuts
+            QShortcut(QKeySequence("Ctrl+L"), self, activated=self._focus_url)
+            QShortcut(QKeySequence("Ctrl+T"), self, activated=lambda: self._add_tab(self.homepage))
+            QShortcut(QKeySequence("Ctrl+W"), self, activated=lambda: self._close_tab(self.tabs.currentIndex()))
+            QShortcut(QKeySequence("Ctrl+R"), self, activated=lambda: self._current_web().reload())
+
+        def _current_web(self) -> QWebEngineView:  # type: ignore[name-defined]
+            return self.tabs.currentWidget()  # type: ignore[return-value]
+
+        def _add_tab(self, target: str) -> None:
+            web = BrowserTabView(self)
+            web.setPage(QWebEnginePage(self.profile, web))
+            web.urlChanged.connect(self._on_url_changed)
+            web.loadProgress.connect(self._on_progress)
+            self.tabs.addTab(web, "New Tab")
+            web.setUrl(QUrl(target))
+
+        def _close_tab(self, index: int) -> None:
+            if self.tabs.count() > 1:
+                self.tabs.removeTab(index)
+
+        def _on_tab_changed(self, index: int) -> None:
+            self._connect_current_tab()
+            cur = self._current_web()
+            if cur:
+                self.url_input.setText(cur.url().toString())
+
+        def _connect_current_tab(self) -> None:
+            # Tabs already connect signals on creation; nothing else needed now.
+            pass
 
         def _on_url_entered(self) -> None:
             target = guess_url(self.url_input.text())
-            self.web.setUrl(QUrl(target))
+            cur = self._current_web()
+            cur.setUrl(QUrl(target))
 
         def _on_url_changed(self, url: QUrl) -> None:  # type: ignore[name-defined]
             self.url_input.setText(url.toString())
+            # Update tab title
+            cur = self._current_web()
+            if cur:
+                self.tabs.setTabText(self.tabs.currentIndex(), url.toString()[:30])
 
         def _on_progress(self, val: int) -> None:
             self.status.showMessage(f"Loading… {val}%")
             if val == 100:
                 self.status.clearMessage()
+
+        def _on_download_requested(self, req: QWebEngineDownloadRequest) -> None:  # type: ignore[name-defined]
+            try:
+                filename = req.downloadFileName()
+                req.setDownloadDirectory(self.paths.downloads_dir)
+                req.setDownloadFileName(filename)
+                req.accept()
+                save_path = self.paths.downloads_dir + "/" + filename
+                self.status.showMessage(f"Downloading to {save_path}")
+                req.finished.connect(lambda: self.status.showMessage(f"Downloaded: {save_path}", 5000))
+            except Exception as exc:
+                self.status.showMessage(f"Download failed: {exc}", 5000)
+
+        def _focus_url(self) -> None:
+            self.url_input.setFocus()
+
+    class BrowserTabView(QWebEngineView):  # type: ignore[misc]
+        def __init__(self, window: BrowserWindow) -> None:
+            super().__init__(window)
+            self.window = window
+
+        def createWindow(self, _type):  # noqa: N802 - Qt overrides camelCase
+            # Open target=_blank and window.open in a new tab
+            self.window._add_tab("about:blank")
+            return self.window._current_web()
 
     win = BrowserWindow()
     win.show()
