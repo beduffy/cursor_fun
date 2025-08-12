@@ -107,6 +107,10 @@ def export_edit(segments: List[EditSegment], output_path: str) -> None:
             for p in temp_segment_paths:
                 f.write(f"file {shlex.quote(p)}\n")
 
+        # Ensure output has an extension; default to .mp4 if missing
+        if not os.path.splitext(output_path)[1]:
+            output_path += ".mp4"
+
         cmd_concat = (
             f"ffmpeg -y -f concat -safe 0 -i {shlex.quote(concat_list_path)} "
             f"-c copy {shlex.quote(output_path)}"
