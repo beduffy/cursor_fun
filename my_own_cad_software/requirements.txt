@@ -1,5 +1,0 @@
-# Core (no GUI dependency required for tests)
-pytest>=7.0
-
-# Optional GUI
-PySide6>=6.6
