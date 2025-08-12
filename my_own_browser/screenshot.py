@@ -13,6 +13,7 @@ Requires:
 import argparse
 import sys
 from typing import Optional, List
+from .logging_utils import get_app_logger
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -27,6 +28,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    logger = get_app_logger("my_own_browser.screenshot")
+    logger.info("Screenshot start: %s -> %s", args.url, args.out)
     try:
         from playwright.sync_api import sync_playwright
     except Exception as exc:  # pragma: no cover
@@ -48,6 +51,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         finally:
             browser.close()
     print(f"Saved screenshot to {args.out}")
+    logger.info("Saved screenshot to %s", args.out)
     return 0
 
 

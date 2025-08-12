@@ -19,6 +19,7 @@ from typing import Optional
 from .storage import get_app_paths, load_settings, save_settings
 from .bookmarks import add_bookmark, load_bookmarks
 from .history import add_to_history
+from .logging_utils import get_app_logger
 
 
 def guess_url(text: str) -> str:
@@ -70,6 +71,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 1
 
     app = QApplication(sys.argv)
+    logger = get_app_logger("my_own_browser.gui")
+    logger.info("GUI start")
 
     class BrowserWindow(QMainWindow):
         def __init__(self) -> None:
@@ -185,6 +188,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             web.loadProgress.connect(self._on_progress)
             self.tabs.addTab(web, "New Tab")
             web.setUrl(QUrl(target))
+            try:
+                logger.info("Open tab %s", target)
+            except Exception:
+                pass
 
         def _close_tab(self, index: int) -> None:
             if self.tabs.count() > 1:
@@ -214,6 +221,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                 # Add to history
                 try:
                     add_to_history(url.toString(), url.toString())
+                except Exception:
+                    pass
+                try:
+                    logger.info("Navigated %s", url.toString())
                 except Exception:
                     pass
 

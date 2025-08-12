@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 
 from .browser import Browser
 from .renderer import render_for_terminal, truncate_text, render_html_to_terminal
+from .logging_utils import get_app_logger
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -16,8 +17,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
+    logger = get_app_logger("my_own_browser.cli")
+    logger.info("CLI start")
     browser = Browser()
     page = browser.go(args.url)
+    logger.info("Fetched %s (%s)", page.url, page.status_code)
 
     header_lines = [
         f"Title: {page.title or '(no title)'}",
@@ -37,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\nLinks:")
         for idx, link in enumerate(page.links[:20], start=1):
             print(f"  [{idx}] {link}")
+    logger.info("Done")
     return 0
 
 

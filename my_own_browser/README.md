@@ -36,6 +36,12 @@ playwright install chromium
 python3 -m my_own_browser.screenshot --url https://example.com --out example_screenshot.png --full-page
 ```
 
+Logs:
+
+```text
+~/.config/my_own_browser/logs/app.log
+```
+
 ## Tests
 
 ```bash
