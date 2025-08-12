@@ -1,0 +1,2 @@
+# Optional: readline is part of stdlib on Unix (GNU readline via libedit)
+# No external runtime deps required
