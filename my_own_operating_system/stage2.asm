@@ -5,8 +5,14 @@ BITS 16
 ORG 0x7E00
 
 start_stage2:
-    ; Print status
+    ; Clear screen for clarity, then print status
     cld                     ; forward string ops
+    mov ax, 0x0600
+    mov bh, 0x07
+    mov cx, 0x0000
+    mov dx, 0x184F
+    int 0x10
+
     mov si, msg2
 .print_loop:
     lodsb
@@ -19,13 +25,6 @@ start_stage2:
     jmp .print_loop
 
 .after_print:
-    ; Clear screen for clarity
-    mov ax, 0x0600
-    mov bh, 0x07
-    mov cx, 0x0000
-    mov dx, 0x184F
-    int 0x10
-
     ; Read stage3 (1 sector) from LBA 2 (CHS C=0,H=0,S=3) to 0x10000
     mov ax, 0x0000
     mov es, ax
@@ -38,6 +37,19 @@ start_stage2:
     ; DL already contains boot drive from BIOS; keep it unchanged
     int 0x13
     jc disk_error
+
+    ; Indicate stage3 read OK
+    mov si, ok2_msg
+.ok2_loop:
+    lodsb
+    test al, al
+    jz .after_ok2
+    mov ah, 0x0E
+    mov bh, 0x00
+    mov bl, 0x0A
+    int 0x10
+    jmp .ok2_loop
+.after_ok2:
 
     ; Setup GDT for flat 32-bit segments and switch to protected mode
     cli
@@ -101,6 +113,7 @@ gdtr:
 
 msg2 db "Stage 2: loading stage3 and switching to 32-bit...", 0
 disk_msg db " INT13h read error", 0
+ok2_msg db " [OK]", 0
 
 ; Pad stage2 to one sector (512 bytes)
 TIMES 512 - ($ - $$) db 0

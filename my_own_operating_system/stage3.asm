@@ -5,7 +5,7 @@ BITS 32
 ORG 0x00008000
 
 start_stage3:
-    ; Set VGA text mode cursor to top-left and print string
+    ; Print string at top-left in blue background
     mov esi, msg
     mov edi, 0xB8000
 
