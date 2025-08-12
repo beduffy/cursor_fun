@@ -20,6 +20,7 @@ from .storage import get_app_paths, load_settings, save_settings
 from .bookmarks import add_bookmark, load_bookmarks
 from .history import add_to_history
 from .logging_utils import get_app_logger
+from .filter import load_blocklist
 
 
 def guess_url(text: str) -> str:
@@ -109,6 +110,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Persistence paths and profile
             self.paths = get_app_paths()
             self.settings = load_settings()
+            self.blocklist = load_blocklist()
             self.profile = QWebEngineProfile("Default", self)
             try:
                 self.profile.setCachePath(self.paths.cache_dir)
@@ -356,6 +358,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Open target=_blank and window.open in a new tab
             self.window._add_tab("about:blank")
             return self.window._current_web()
+
+        def acceptNavigationRequest(self, url, nav_type, is_main_frame):  # noqa: N802
+            # Basic URL blocklist
+            try:
+                if self.window.blocklist.matches(url.toString()):
+                    self.window.status.showMessage("Blocked: " + url.toString(), 3000)
+                    return False
+            except Exception:
+                pass
+            return super().acceptNavigationRequest(url, nav_type, is_main_frame)
 
     win = BrowserWindow()
     # Open URLs passed on the command line in tabs

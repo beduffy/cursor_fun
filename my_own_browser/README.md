@@ -27,6 +27,7 @@ Features:
 - Find in page (Ctrl+F)
 - Homepage (Alt+Home), set current as homepage (Ctrl+Shift+H)
 - Reader mode (Ctrl+Shift+R) renders current page in a side dock using the built-in text renderer
+- Basic URL blocklist (ad/tracker patterns) editable at `~/.config/my_own_browser/blocklist.json`
 
 Headless screenshot (proves real rendering):
 
