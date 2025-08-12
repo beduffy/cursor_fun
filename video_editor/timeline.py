@@ -42,6 +42,10 @@ class TimelineView(QWidget):
         self._is_panning = False
         self._pan_start_x = 0.0
         self._pan_start_offset = 0.0
+        # Marquee selection state
+        self._is_marquee = False
+        self._marquee_start = None
+        self._marquee_rect = None
 
     
     def sizeHint(self):  # type: ignore[override]
@@ -124,6 +128,11 @@ class TimelineView(QWidget):
         play_x = int((self.playhead_time - self.view_offset_seconds) / self.seconds_per_pixel) + self.header_width
         painter.setPen(QPen(QColor(200, 60, 60), 2))
         painter.drawLine(play_x, 0, play_x, rect.height())
+        # Marquee overlay
+        if self._is_marquee and self._marquee_rect is not None:
+            painter.setPen(QPen(QColor(100, 160, 240)))
+            painter.fillRect(self._marquee_rect, QColor(100, 160, 240, 60))
+            painter.drawRect(self._marquee_rect)
 
     
     def mousePressEvent(self, event):  # type: ignore[override]
@@ -136,7 +145,7 @@ class TimelineView(QWidget):
             return
         if event.button() != Qt.LeftButton:
             return
-        # set playhead if clicked in empty area
+        # set playhead if clicked in empty area (Shift+Left starts marquee)
         res = self._hit_test(event.position())
         if res.clip_id is None:
             # toggle lock if clicking header area
@@ -148,10 +157,24 @@ class TimelineView(QWidget):
                     pass
                 self.update()
                 return
-            self.playhead_time = max(0.0, (float(event.position().x()) - self.header_width) * self.seconds_per_pixel + self.view_offset_seconds)
-            self.update()
-            self.playheadChanged.emit(self.playhead_time)
-            return
+            # If Shift is held, begin marquee selection
+            mods = Qt.NoModifier
+            try:
+                from PySide6.QtWidgets import QApplication
+                mods = QApplication.keyboardModifiers()
+            except Exception:
+                pass
+            if mods & Qt.ShiftModifier:
+                self._is_marquee = True
+                self._marquee_start = event.position()
+                self._marquee_rect = QRectF(self._marquee_start, self._marquee_start)
+                self.update()
+                return
+            else:
+                self.playhead_time = max(0.0, (float(event.position().x()) - self.header_width) * self.seconds_per_pixel + self.view_offset_seconds)
+                self.update()
+                self.playheadChanged.emit(self.playhead_time)
+                return
         if res.edge == 'left':
             self.drag_state = ('trim_left', res.clip_id, event.position(), None)
         elif res.edge == 'right':
@@ -183,6 +206,16 @@ class TimelineView(QWidget):
         if getattr(self, '_is_panning', False):
             dx = float(event.position().x()) - getattr(self, '_pan_start_x', 0.0)
             self.view_offset_seconds = max(0.0, getattr(self, '_pan_start_offset', 0.0) - dx * self.seconds_per_pixel)
+            self.update()
+            return
+        # Update marquee rectangle if active
+        if self._is_marquee and self._marquee_start is not None:
+            cur = event.position()
+            x1 = min(self._marquee_start.x(), cur.x())
+            x2 = max(self._marquee_start.x(), cur.x())
+            y1 = min(self._marquee_start.y(), cur.y())
+            y2 = max(self._marquee_start.y(), cur.y())
+            self._marquee_rect = QRectF(QPointF(x1, y1), QPointF(x2, y2))
             self.update()
             return
         res = self._hit_test(event.position())
@@ -233,6 +266,25 @@ class TimelineView(QWidget):
 
     
     def mouseReleaseEvent(self, event):  # type: ignore[override]
+        # Commit marquee selection if active
+        if self._is_marquee:
+            if self._marquee_rect is not None:
+                selected: Set[int] = set()
+                for clip in self.project.clips.values():
+                    x = int((clip.timeline_start - self.view_offset_seconds) / self.seconds_per_pixel) + self.header_width
+                    w = int((clip.source_out - clip.source_in) / self.seconds_per_pixel)
+                    y = self.ruler_height + clip.track_index * (self.track_height + self.row_gap)
+                    rect = QRectF(x, y, max(6, w), self.track_height)
+                    if rect.intersects(self._marquee_rect):
+                        selected.add(clip.id)
+                self.selected_clip_ids = selected
+                self.selected_clip_id = next(iter(selected), None)
+            self._is_marquee = False
+            self._marquee_start = None
+            self._marquee_rect = None
+            self.setCursor(QCursor(Qt.ArrowCursor))
+            self.update()
+            return
         self.drag_state = None
         self.setCursor(QCursor(Qt.ArrowCursor))
         self.update()
@@ -299,9 +351,9 @@ class TimelineView(QWidget):
             event.ignore()
             return
         # compute drop time and track
-        drop_x = float(event.position().x())
+        drop_x = float(event.position().x()) - self.header_width
         drop_y = float(event.position().y())
-        time_s = max(0.0, drop_x * self.seconds_per_pixel)
+        time_s = max(0.0, drop_x * self.seconds_per_pixel + self.view_offset_seconds)
         track = int(max(0, (drop_y - self.ruler_height) // float(self.track_height + self.row_gap)))
         track = min(self.project.track_count - 1, track)
         src = self.project.sources.get(source_id)
