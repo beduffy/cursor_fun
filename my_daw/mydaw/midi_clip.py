@@ -43,6 +43,7 @@ class MidiNoteClip(Clip):
                     self.transport.beats_to_seconds(n.start_beats),
                     n.frequency_hz(),
                     self.transport.beats_to_seconds(n.duration_beats),
+                    n.velocity,
                 )
                 for n in self.notes
             ],

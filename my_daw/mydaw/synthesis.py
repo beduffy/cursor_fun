@@ -55,12 +55,12 @@ class ADSR:
         return env
 
 
-def render_poly_sine(sample_rate: int, notes: Iterable[Tuple[float, float, float]], adsr: ADSR, total_seconds: float) -> np.ndarray:
-    """Render polyphonic sine given notes = [(start_s, freq_hz, dur_s), ...]."""
+def render_poly_sine(sample_rate: int, notes: Iterable[Tuple[float, float, float, float]], adsr: ADSR, total_seconds: float) -> np.ndarray:
+    """Render polyphonic sine given notes = [(start_s, freq_hz, dur_s, velocity), ...]."""
     total_samples = int(round(total_seconds * sample_rate))
     t = np.arange(total_samples, dtype=np.float32) / float(sample_rate)
     mix = np.zeros(total_samples, dtype=np.float32)
-    for start_s, freq_hz, dur_s in notes:
+    for start_s, freq_hz, dur_s, velocity in notes:
         start_n = int(round(start_s * sample_rate))
         dur_n = int(round(dur_s * sample_rate))
         end_n = min(total_samples, start_n + dur_n)
@@ -70,7 +70,7 @@ def render_poly_sine(sample_rate: int, notes: Iterable[Tuple[float, float, float
         phase = 2.0 * math.pi * float(freq_hz) * seg_t
         tone = np.sin(phase).astype(np.float32)
         env = adsr.render(sample_rate, end_n - start_n, 0, end_n - start_n)
-        tone *= env
+        tone *= env * float(max(0.0, min(1.0, velocity)))
         mix[start_n:end_n] += tone
     return np.clip(mix, -1.0, 1.0)
 

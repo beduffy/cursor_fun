@@ -70,3 +70,17 @@ class StereoMixer(SampleGenerator):
         return mix
 
 
+def render_tracks_stereo(tracks: List[SampleGenerator], sample_rate: int, total_samples: int, pans: List[float]) -> np.ndarray:
+    """Render a list of mono-generating tracks with per-track pan into stereo (2, N)."""
+    mix = np.zeros((2, total_samples), dtype=np.float32)
+    for idx, tr in enumerate(tracks):
+        mono = tr.generate(sample_rate, total_samples)
+        pan = 0.0
+        if idx < len(pans):
+            pan = float(pans[idx])
+        st = constant_power_pan(mono, pan)
+        mix += st
+    np.clip(mix, -1.0, 1.0, out=mix)
+    return mix
+
+

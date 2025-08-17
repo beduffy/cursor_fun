@@ -85,7 +85,8 @@ PYTHONPATH=/home/ben/all_projects/cursor_fun/my_daw python3 -m mydaw.ui.app
   - Drag clips left/right to change start time
   - Export the current mix as WAV
   - Step sequencer dock (3 lanes: kick/snare/hihat) synced to 120 BPM transport
-  - Planned: piano roll UI, MIDI keyboard input, meters and pan controls per track
+  - Piano Roll dock for MIDI notes: click to toggle notes after "Add MIDI Track"
+  - Planned: MIDI keyboard input, meters and pan controls per track
 
 ## Roadmap (high-level)
 - Transport/tempo and time grid (in progress)
