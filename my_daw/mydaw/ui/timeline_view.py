@@ -16,6 +16,9 @@ from mydaw import (
   ToneClip,
   AudioClip,
 )
+from mydaw.tempo_transport import Transport
+from mydaw.drums import DrumRack
+from .step_sequencer import StepSequencer
 
 
 @dataclass
@@ -165,11 +168,14 @@ class TimelineWindow(QtWidgets.QMainWindow):  # pragma: no cover - UI only
     super().__init__()
     self.setWindowTitle("my_daw — Timeline")
     self.model = TimelineModel()
+    self.transport = Transport(bpm=120.0)
+    self.drum_rack = DrumRack(self.transport)
 
     self.canvas = TimelineCanvas(self.model)
     self.setCentralWidget(self.canvas)
 
     self._build_toolbar()
+    self._build_dock_sequencer()
 
   def _build_toolbar(self) -> None:
     tb = self.addToolBar("Main")
@@ -218,9 +224,26 @@ class TimelineWindow(QtWidgets.QMainWindow):  # pragma: no cover - UI only
     length, ok = QtWidgets.QInputDialog.getDouble(self, "Export Length", "seconds:", max(5.0, self.model.length_seconds), 0.1, 3600.0, 1)
     if not ok:
       return
-    samples = self.model.render(44100, float(length))
+    # include drum rack by mixing it on a new track on the fly
+    temp_model = TimelineModel()
+    # Copy existing tracks/clips by rendering through a mixer along with a temp track for drums
+    samples_timeline = self.model.render(44100, float(length))
+    samples_drums = self.drum_rack.render(44100)
+    # Mix
+    n = max(samples_timeline.shape[0], samples_drums.shape[0])
+    out = np.zeros(n, dtype=np.float32)
+    out[:samples_timeline.shape[0]] += samples_timeline
+    out[:samples_drums.shape[0]] += samples_drums
+    samples = np.clip(out, -1.0, 1.0)
     out_path = Path(__file__).resolve().parents[2] / "output_ui_export.wav"
     write_wav_16bit(str(out_path), samples, 44100)
     QtWidgets.QMessageBox.information(self, "Export", f"Wrote {out_path}")
+
+  def _build_dock_sequencer(self):
+    dock = QtWidgets.QDockWidget("Step Sequencer", self)
+    dock.setAllowedAreas(QtCore.Qt.BottomDockWidgetArea)
+    seq = StepSequencer(self.transport, self.drum_rack, steps=16, parent=dock)
+    dock.setWidget(seq)
+    self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock)
 
 

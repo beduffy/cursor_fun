@@ -47,12 +47,18 @@ my_daw/
     tracks.py
     envelopes.py
     audioclip.py
+    tempo_transport.py
+    midi_clip.py
+    synthesis.py
+    drums.py
     examples/
       minimal_example.py
       mixer_example.py
+      stereo_example.py
     ui/
       app.py
       timeline_view.py
+      step_sequencer.py
   tests/
     test_clips.py
     test_timeline.py
@@ -78,6 +84,18 @@ PYTHONPATH=/home/ben/all_projects/cursor_fun/my_daw python3 -m mydaw.ui.app
   - Add audio clips by browsing a WAV file
   - Drag clips left/right to change start time
   - Export the current mix as WAV
+  - Step sequencer dock (3 lanes: kick/snare/hihat) synced to 120 BPM transport
+  - Planned: piano roll UI, MIDI keyboard input, meters and pan controls per track
+
+## Roadmap (high-level)
+- Transport/tempo and time grid (in progress)
+- MIDI note clips with piano roll UI and poly synth (sine now, more later)
+- Drum rack with sample pads and step sequencer (basic click/kick prototype done)
+- Track mixer: volume, pan (constant power), mute/solo, meters
+- Clip envelopes: gain, fade in/out, curve shaping
+- Arranger vs Session view models; scene triggering
+- Realtime audio backend and clickless scheduling
+- File I/O: projects, clips, automation
 
 ## License
 MIT

@@ -9,6 +9,11 @@ from .clips import ToneClip
 from .tracks import Track, Mixer
 from .envelopes import GainPoint, render_gain_envelope
 from .audioclip import AudioClip
+from .tempo_transport import Transport
+from .midi_clip import MidiNoteClip
+from .synthesis import ADSR
+from .drums import DrumRack
+from .stereo import StereoTrack, StereoMixer, constant_power_pan
 
 __all__ = [
   "OfflineEngine",
@@ -20,6 +25,13 @@ __all__ = [
   "GainPoint",
   "render_gain_envelope",
   "AudioClip",
+  "Transport",
+  "MidiNoteClip",
+  "ADSR",
+  "DrumRack",
+  "StereoTrack",
+  "StereoMixer",
+  "constant_power_pan",
 ]
 
 

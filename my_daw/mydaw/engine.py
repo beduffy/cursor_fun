@@ -12,16 +12,22 @@ DEFAULT_SAMPLE_RATE = 44100
 
 
 def write_wav_16bit(path: str, samples: np.ndarray, sample_rate: int = DEFAULT_SAMPLE_RATE) -> None:
-    """Write mono float32 samples in [-1, 1] to 16-bit PCM WAV.
+    """Write float32 samples to 16-bit PCM WAV.
 
-    Clips to [-1, 1] and converts to int16. Accepts shape (num_samples,).
+    Accepts mono shape (N,) or stereo shape (2, N).
     """
-    if samples.ndim != 1:
-        raise ValueError("Expected mono 1D array for samples")
-    clipped = np.clip(samples, -1.0, 1.0)
+    if samples.ndim == 1:
+        channels = 1
+        data = samples
+    elif samples.ndim == 2 and samples.shape[0] == 2:
+        channels = 2
+        data = samples.T.reshape(-1)
+    else:
+        raise ValueError("Expected mono (N,) or stereo (2,N) array")
+    clipped = np.clip(data, -1.0, 1.0)
     int16 = (clipped * 32767.0).astype(np.int16)
     with wave.open(path, "wb") as wf:
-        wf.setnchannels(1)
+        wf.setnchannels(channels)
         wf.setsampwidth(2)  # 16-bit
         wf.setframerate(sample_rate)
         wf.writeframes(int16.tobytes())
