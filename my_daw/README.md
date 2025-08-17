@@ -44,18 +44,40 @@ my_daw/
     engine.py
     timeline.py
     clips.py
+    tracks.py
+    envelopes.py
+    audioclip.py
     examples/
       minimal_example.py
+      mixer_example.py
+    ui/
+      app.py
+      timeline_view.py
   tests/
     test_clips.py
     test_timeline.py
     test_engine.py
+    test_tracks_and_mixer.py
+    test_envelopes.py
+    test_audioclip.py
 ```
 
 ## Development
 - Install: `pip install -r requirements.txt`
 - Test: `pytest -q my_daw/tests`
 - Style: idiomatic Python, explicit, readable
+
+## Visual timeline UI (experimental)
+- Requires PyQt5: `pip install --user PyQt5`
+- Run:
+```bash
+PYTHONPATH=/home/ben/all_projects/cursor_fun/my_daw python3 -m mydaw.ui.app
+```
+- Features:
+  - Add tone clips with frequency and duration
+  - Add audio clips by browsing a WAV file
+  - Drag clips left/right to change start time
+  - Export the current mix as WAV
 
 ## License
 MIT
