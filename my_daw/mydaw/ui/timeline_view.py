@@ -292,6 +292,18 @@ class TimelineWindow(QtWidgets.QMainWindow):  # pragma: no cover - UI only
     color_track.triggered.connect(self._on_set_track_color)
     tb.addAction(color_track)
 
+    del_clip = QtWidgets.QAction("Delete Clip", self)
+    del_clip.triggered.connect(self._on_delete_clip)
+    tb.addAction(del_clip)
+
+    copy_clip = QtWidgets.QAction("Copy Clip", self)
+    copy_clip.triggered.connect(self._on_copy_clip)
+    tb.addAction(copy_clip)
+
+    paste_clip = QtWidgets.QAction("Paste Clip", self)
+    paste_clip.triggered.connect(self._on_paste_clip)
+    tb.addAction(paste_clip)
+
   def _on_add_tone(self):
     freq, ok = QtWidgets.QInputDialog.getInt(self, "Tone Frequency", "Hz:", 440, 20, 20000, 1)
     if not ok:
@@ -329,13 +341,17 @@ class TimelineWindow(QtWidgets.QMainWindow):  # pragma: no cover - UI only
     # include drum rack by mixing it on a new track on the fly
     temp_model = TimelineModel()
     # Copy existing tracks/clips by rendering through a mixer along with a temp track for drums
-    samples_timeline = self.model.render(44100, float(length))  # now stereo (2,N)
+    # If loop start > 0, we export starting from loop start offset
+    start_offset = self.model.loop_start if self.model.loop_length > 0 else 0.0
+    samples_timeline = self.model.render(44100, float(length + start_offset))  # now stereo (2,N)
     samples_drums = self.drum_rack.render(44100)  # mono
     # Mix drums mono into stereo
     n = max(samples_timeline.shape[1], samples_drums.shape[0])
     out = np.zeros((2, n), dtype=np.float32)
-    out[:, :samples_timeline.shape[1]] += samples_timeline
-    out[:, :samples_drums.shape[0]] += np.stack([samples_drums, samples_drums], axis=0)
+    # slice from start_offset seconds
+    start_n = int(round(start_offset * 44100))
+    out[:, : max(0, samples_timeline.shape[1] - start_n)] += samples_timeline[:, start_n:]
+    out[:, : max(0, samples_drums.shape[0] - start_n)] += np.stack([samples_drums, samples_drums], axis=0)[:, start_n:]
     samples = np.clip(out, -1.0, 1.0)
     out_path = Path(__file__).resolve().parents[2] / "output_ui_export.wav"
     write_wav_16bit(str(out_path), samples, 44100)
@@ -425,6 +441,34 @@ class TimelineWindow(QtWidgets.QMainWindow):  # pragma: no cover - UI only
     if idx >= len(self.model.track_colors):
       self.model.ensure_tracks(idx + 1)
     self.model.track_colors[idx] = color
+    self.canvas.update()
+
+  def _on_delete_clip(self):
+    if self.canvas.selected_index is None:
+      return
+    idx = self.canvas.selected_index
+    uic = self.model.ui_clips[idx]
+    if uic.model_ref is not None:
+      self.model.tracks[uic.track_index].remove_placed(uic.model_ref)
+    self.model.ui_clips.pop(idx)
+    self.canvas.selected_index = None
+    self.canvas.update()
+
+  def _on_copy_clip(self):
+    if self.canvas.selected_index is None:
+      return
+    uic = self.model.ui_clips[self.canvas.selected_index]
+    self._clipboard = (uic.track_index, uic.duration_seconds, uic.kind, dict(uic.params), clone_clip(uic.model_ref.clip) if uic.model_ref else None)
+
+  def _on_paste_clip(self):
+    if not hasattr(self, '_clipboard'):
+      return
+    track_index, duration, kind, params, clip = self._clipboard
+    # paste at view left edge
+    start = self.canvas.scroll_x_seconds
+    self.model.ensure_tracks(track_index + 1)
+    placed = self.model.tracks[track_index].add_clip(clip, start)
+    self.model.ui_clips.append(UiClip(track_index, start, duration, kind, params, model_ref=placed))
     self.canvas.update()
 
 

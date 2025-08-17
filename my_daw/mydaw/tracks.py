@@ -40,6 +40,12 @@ class Track(SampleGenerator):
                 mix[start_sample:end_sample] += clip_samples[:span]
         return mix * self.gain
 
+    def remove_placed(self, placed: PlacedClip) -> None:
+        try:
+            self._clips.remove(placed)
+        except ValueError:
+            pass
+
 
 class Mixer(SampleGenerator):
     """A minimal mixer that sums tracks and applies a bus gain."""

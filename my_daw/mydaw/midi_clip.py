@@ -30,6 +30,12 @@ class MidiNoteClip(Clip):
     def add_note(self, start_beats: float, duration_beats: float, midi_note: int, velocity: float = 1.0) -> None:
         self.notes.append(Note(start_beats, duration_beats, midi_note, velocity))
 
+    def quantize(self, grid_beats: float) -> None:
+        if grid_beats <= 0:
+            return
+        for n in self.notes:
+            n.start_beats = round(n.start_beats / grid_beats) * grid_beats
+
     def render(self, sample_rate: int) -> np.ndarray:
         if not self.notes:
             return np.zeros(0, dtype=np.float32)
